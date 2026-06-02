@@ -44,6 +44,6 @@ final class AdminDashboardTest extends WebTestCase
         $client->request('GET', '/admin');
 
         self::assertResponseRedirects();
-        self::assertStringContainsString('/login', $client->getResponse()->headers->get('Location') ?? '');
+        $this->assertStringContainsString('/login', $client->getResponse()->headers->get('Location') ?? '');
     }
 }

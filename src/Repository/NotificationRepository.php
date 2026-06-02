@@ -32,7 +32,8 @@ class NotificationRepository extends ServiceEntityRepository
             ->setParameter('start', $start)
             ->setParameter('end', $end)
             ->getQuery()
-            ->getSingleScalarResult();
+            ->getSingleScalarResult()
+        ;
 
         return $count > 0;
     }
@@ -48,7 +49,8 @@ class NotificationRepository extends ServiceEntityRepository
             ->select('n.status AS status, COUNT(n.id) AS total')
             ->groupBy('n.status')
             ->getQuery()
-            ->getResult();
+            ->getResult()
+        ;
 
         $counts = [];
         foreach (NotificationStatus::cases() as $case) {
@@ -77,6 +79,7 @@ class NotificationRepository extends ServiceEntityRepository
             ->setParameter('end', $end)
             ->orderBy('n.scheduledAt', 'ASC')
             ->getQuery()
-            ->getResult();
+            ->getResult()
+        ;
     }
 }

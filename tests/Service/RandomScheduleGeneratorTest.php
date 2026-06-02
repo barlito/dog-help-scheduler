@@ -22,19 +22,19 @@ final class RandomScheduleGeneratorTest extends TestCase
 
         $times = $generator->generate($this->day(), '08:00', '20:00', 4, 60);
 
-        self::assertCount(4, $times);
+        $this->assertCount(4, $times);
 
         $start = $this->day()->setTime(8, 0);
         $end = $this->day()->setTime(20, 0);
 
         $previous = null;
         foreach ($times as $time) {
-            self::assertGreaterThanOrEqual($start->getTimestamp(), $time->getTimestamp());
-            self::assertLessThanOrEqual($end->getTimestamp(), $time->getTimestamp());
+            $this->assertGreaterThanOrEqual($start->getTimestamp(), $time->getTimestamp());
+            $this->assertLessThanOrEqual($end->getTimestamp(), $time->getTimestamp());
 
             if (null !== $previous) {
                 $gapMinutes = ($time->getTimestamp() - $previous->getTimestamp()) / 60;
-                self::assertGreaterThanOrEqual(60, $gapMinutes, 'Minimum gap must be respected.');
+                $this->assertGreaterThanOrEqual(60, $gapMinutes, 'Minimum gap must be respected.');
             }
             $previous = $time;
         }
@@ -50,7 +50,7 @@ final class RandomScheduleGeneratorTest extends TestCase
         $sorted = $timestamps;
         sort($sorted);
 
-        self::assertSame($sorted, $timestamps);
+        $this->assertSame($sorted, $timestamps);
     }
 
     public function testDeterministicForAGivenSeed(): void
@@ -58,14 +58,14 @@ final class RandomScheduleGeneratorTest extends TestCase
         $a = (new RandomScheduleGenerator(new Randomizer(new Mt19937(123))))->generate($this->day(), '08:00', '20:00', 4, 60);
         $b = (new RandomScheduleGenerator(new Randomizer(new Mt19937(123))))->generate($this->day(), '08:00', '20:00', 4, 60);
 
-        self::assertEquals($a, $b);
+        $this->assertEquals($a, $b);
     }
 
     public function testReturnsEmptyArrayWhenCountIsZero(): void
     {
         $generator = new RandomScheduleGenerator();
 
-        self::assertSame([], $generator->generate($this->day(), '08:00', '20:00', 0, 60));
+        $this->assertSame([], $generator->generate($this->day(), '08:00', '20:00', 0, 60));
     }
 
     public function testThrowsWhenNotificationsCannotFit(): void

@@ -41,12 +41,12 @@ final class NotifyTestCommand extends Command
         } catch (\Throwable $e) {
             $notification->markFailed();
             $this->em->flush();
-            $io->error(sprintf('ntfy publish failed: %s', $e->getMessage()));
+            $io->error(\sprintf('ntfy publish failed: %s', $e->getMessage()));
 
             return Command::FAILURE;
         }
 
-        $io->success(sprintf('Test notification #%d sent to ntfy. Tap a button on your phone, then check the backoffice.', $notification->getId()));
+        $io->success(\sprintf('Test notification #%d sent to ntfy. Tap a button on your phone, then check the backoffice.', $notification->getId()));
 
         return Command::SUCCESS;
     }

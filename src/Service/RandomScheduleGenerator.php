@@ -23,10 +23,10 @@ final class RandomScheduleGenerator
     }
 
     /**
-     * @param \DateTimeImmutable $day          any time on the target day (only the date + timezone are used)
-     * @param string             $windowStart  "HH:MM"
-     * @param string             $windowEnd    "HH:MM"
-     * @param int                $count        number of notifications to plan
+     * @param \DateTimeImmutable $day           any time on the target day (only the date + timezone are used)
+     * @param string             $windowStart   "HH:MM"
+     * @param string             $windowEnd     "HH:MM"
+     * @param int                $count         number of notifications to plan
      * @param int                $minGapMinutes minimum spacing between two notifications
      *
      * @return \DateTimeImmutable[] sorted ascending
@@ -50,12 +50,12 @@ final class RandomScheduleGenerator
 
         $windowMinutes = (int) (($end->getTimestamp() - $start->getTimestamp()) / 60);
         if ($windowMinutes <= 0) {
-            throw new \InvalidArgumentException(sprintf('Window end "%s" must be after start "%s".', $windowEnd, $windowStart));
+            throw new \InvalidArgumentException(\sprintf('Window end "%s" must be after start "%s".', $windowEnd, $windowStart));
         }
 
         $slack = $windowMinutes - ($count - 1) * $minGapMinutes;
         if ($slack < 0) {
-            throw new \InvalidArgumentException(sprintf(
+            throw new \InvalidArgumentException(\sprintf(
                 'Cannot fit %d notifications with a %d-minute gap inside a %d-minute window.',
                 $count,
                 $minGapMinutes,
@@ -72,7 +72,7 @@ final class RandomScheduleGenerator
         $times = [];
         foreach ($offsets as $i => $offset) {
             $minutes = $offset + $i * $minGapMinutes;
-            $times[] = $start->modify(sprintf('+%d minutes', $minutes));
+            $times[] = $start->modify(\sprintf('+%d minutes', $minutes));
         }
 
         return $times;
@@ -80,14 +80,14 @@ final class RandomScheduleGenerator
 
     private function atTime(\DateTimeImmutable $day, string $hhmm): \DateTimeImmutable
     {
-        if (!preg_match('/^(\d{1,2}):(\d{2})$/', $hhmm, $m)) {
-            throw new \InvalidArgumentException(sprintf('Invalid time "%s", expected "HH:MM".', $hhmm));
+        if (!preg_match('/^(\d{1,2}):(\d{2})$/', $hhmm, $matches)) {
+            throw new \InvalidArgumentException(\sprintf('Invalid time "%s", expected "HH:MM".', $hhmm));
         }
 
-        $hours = (int) $m[1];
-        $minutes = (int) $m[2];
+        $hours = (int) $matches[1];
+        $minutes = (int) $matches[2];
         if ($hours > 23 || $minutes > 59) {
-            throw new \InvalidArgumentException(sprintf('Invalid time "%s".', $hhmm));
+            throw new \InvalidArgumentException(\sprintf('Invalid time "%s".', $hhmm));
         }
 
         return $day->setTime($hours, $minutes, 0);

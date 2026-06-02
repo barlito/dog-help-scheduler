@@ -34,6 +34,7 @@ final class AppScheduleProvider implements ScheduleProviderInterface
                 RecurringMessage::cron('5 0 * * *', new PlanDayMessage(), new \DateTimeZone($this->timezone)),
             )
             // Persist run state so a missed trigger (downtime) is caught up on restart.
-            ->stateful($this->cache);
+            ->stateful($this->cache)
+        ;
     }
 }
