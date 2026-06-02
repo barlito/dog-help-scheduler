@@ -1,0 +1,18 @@
+name: CI
+
+on: push
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Static analysis / coding standards (PHP CS Fixer, PHPCS, PHPMD)
+  code-quality:
+    uses: ./.github/workflows/code-quality.yaml
+    secrets: inherit
+
+  # Test suite (PHPUnit)
+  test:
+    uses: ./.github/workflows/test.yaml
+    secrets: inherit

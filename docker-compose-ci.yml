@@ -4,6 +4,11 @@ services:
         ports:
             - "8081:80"
 
+    db:
+        container_name: doghelp_db
+
 networks:
     traefik_traefik_proxy:
         external: false
+    doghelp_internal:
+        driver: bridge

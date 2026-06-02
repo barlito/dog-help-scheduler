@@ -1,0 +1,55 @@
+name: Tests Workflow
+
+on: workflow_call
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+
+      - name: Setup castor
+        uses: castor-php/setup-castor@v1.0.0
+
+      # Optional: avoids Docker Hub pull rate limits. Skipped if the secret is absent.
+      - name: Login to Docker Hub
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKER_HUB_USERNAME }}
+        if: env.DOCKERHUB_USER != ''
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/files
+          key: composer-${{ hashFiles('**/composer.lock') }}
+
+      - name: Deploy stack (CI)
+        run: USER_ID=$(id -u) GROUP_ID=$(id -g) make docker.deploy.ci
+
+      - name: Wait for containers
+        run: |
+          castor barlito:castor:wait-php-container
+          castor barlito:castor:wait-db-container
+
+      - name: Configure Composer GitHub token
+        run: make composer.command args="config -g github-oauth.github.com ${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Install dependencies
+        run: make composer.install
+
+      - name: Create & migrate the test database
+        run: make doctrine.migrate.ci
+
+      - name: Run PHPUnit
+        run: make phpunit
+
+      - name: Undeploy stack
+        if: always()
+        run: make docker.undeploy.ci
