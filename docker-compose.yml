@@ -1,0 +1,63 @@
+services:
+    php:
+        image: doghelp-php
+        build:
+            context: .
+            dockerfile: .docker/Dockerfile
+            target: frankenphp_dev
+            args:
+                USER_ID: ${USER_ID:-1000}
+                GROUP_ID: ${GROUP_ID:-1000}
+        environment:
+            SERVER_NAME: ":80"
+        volumes:
+            - ./:/app
+            - ./.docker/franken/Caddyfile:/etc/caddy/Caddyfile
+            - ~/.composer:/home/www/.composer:delegated
+            - doghelp_caddy_data:/data
+            - doghelp_caddy_config:/config
+        tty: true
+        deploy:
+            labels:
+                - traefik.enable=true
+
+                - traefik.http.services.doghelp.loadbalancer.server.port=80
+
+                - traefik.http.routers.doghelp.rule=Host(`doghelp.local.barlito.fr`)
+                - traefik.http.routers.doghelp.entrypoints=http
+#                - traefik.http.routers.doghelp.middlewares=tls-redirectscheme
+
+                - traefik.http.routers.doghelp-secure.rule=Host(`doghelp.local.barlito.fr`)
+                - traefik.http.routers.doghelp-secure.entrypoints=https
+                - traefik.http.routers.doghelp-secure.tls=true
+        networks:
+            - traefik_traefik_proxy
+            - doghelp_internal
+
+    db:
+        image: postgres:${POSTGRES_VERSION:-16}-alpine
+        environment:
+            POSTGRES_DB: ${POSTGRES_DB:-app}
+            POSTGRES_USER: ${POSTGRES_USER:-app}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-!ChangeMe!}
+        healthcheck:
+            test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB:-app}", "-U", "${POSTGRES_USER:-app}"]
+            timeout: 5s
+            retries: 5
+            start_period: 60s
+        volumes:
+            - doghelp_db_data:/var/lib/postgresql/data:rw
+        networks:
+            - doghelp_internal
+
+volumes:
+    doghelp_caddy_data:
+    doghelp_caddy_config:
+    doghelp_db_data:
+
+networks:
+    traefik_traefik_proxy:
+        external: true
+    # No explicit driver: `docker stack deploy` defaults to overlay (swarm),
+    # `docker compose up` (CI mode) defaults to bridge — works in both.
+    doghelp_internal:
