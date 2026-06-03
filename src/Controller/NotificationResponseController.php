@@ -34,7 +34,14 @@ final class NotificationResponseController
 
         $status = NotificationStatus::from($action);
 
-        $recorded = $notification->recordResponse($status);
+        try {
+            $recorded = $notification->recordResponse($status);
+        } catch (\InvalidArgumentException) {
+            // Defensive: the route already restricts {action} to answerable statuses,
+            // but guard against future drift between the route and the enum.
+            return new Response('Action invalide.', Response::HTTP_BAD_REQUEST);
+        }
+
         if ($recorded) {
             $em->flush();
         }

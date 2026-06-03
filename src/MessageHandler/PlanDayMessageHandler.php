@@ -43,15 +43,15 @@ final class PlanDayMessageHandler
 
         $times = $this->generator->generate($now, $this->config->windowStart, $this->config->windowEnd, $this->config->perDay, $this->config->minGapMinutes);
 
-        $created = [];
+        $notifications = [];
         foreach ($times as $time) {
             $notification = new Notification($time);
             $this->em->persist($notification);
-            $created[] = $notification;
+            $notifications[] = $notification;
         }
         $this->em->flush();
 
-        foreach ($created as $notification) {
+        foreach ($notifications as $notification) {
             $delayMs = max(0, ($notification->getScheduledAt()->getTimestamp() - $now->getTimestamp()) * 1000);
             $this->bus->dispatch(
                 new SendNotificationMessage($notification->getId()),
@@ -60,7 +60,7 @@ final class PlanDayMessageHandler
         }
 
         $this->logger->info('PlanDay scheduled {count} notifications for {day}.', [
-            'count' => \count($created),
+            'count' => \count($notifications),
             'day' => $now->format('Y-m-d'),
         ]);
     }
