@@ -19,7 +19,7 @@ final class NotificationResponseController
     #[Route(
         '/n/{id}/{token}/{action}',
         name: 'notification_response',
-        requirements: ['id' => '\d+', 'action' => 'validated|postponed|not_done'],
+        requirements: ['id' => '[0-9a-fA-F-]{36}', 'action' => 'validated|postponed|not_done'],
         methods: ['GET', 'POST'],
     )]
     public function __invoke(

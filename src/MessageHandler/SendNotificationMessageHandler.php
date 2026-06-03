@@ -10,6 +10,7 @@ use App\Service\NtfyPublisher;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Uid\Uuid;
 
 #[AsMessageHandler]
 final class SendNotificationMessageHandler
@@ -24,7 +25,7 @@ final class SendNotificationMessageHandler
 
     public function __invoke(SendNotificationMessage $message): void
     {
-        $notification = $this->notifications->find($message->notificationId);
+        $notification = $this->notifications->find(Uuid::fromString($message->notificationId));
         if (null === $notification) {
             $this->logger->warning('SendNotification skipped: #{id} no longer exists.', ['id' => $message->notificationId]);
 

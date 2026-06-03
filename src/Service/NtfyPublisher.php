@@ -82,7 +82,7 @@ final class NtfyPublisher
     private function callbackUrl(Notification $notification, NotificationStatus $status): string
     {
         return \sprintf(
-            '%s/n/%d/%s/%s',
+            '%s/n/%s/%s/%s',
             rtrim($this->publicUrl, '/'),
             $notification->getId(),
             $notification->getResponseToken(),

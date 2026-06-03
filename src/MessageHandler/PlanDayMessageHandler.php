@@ -54,7 +54,7 @@ final class PlanDayMessageHandler
         foreach ($notifications as $notification) {
             $delayMs = max(0, ($notification->getScheduledAt()->getTimestamp() - $now->getTimestamp()) * 1000);
             $this->bus->dispatch(
-                new SendNotificationMessage($notification->getId()),
+                new SendNotificationMessage((string) $notification->getId()),
                 [new DelayStamp($delayMs)],
             );
         }

@@ -36,7 +36,7 @@ final class NotificationResponseControllerTest extends WebTestCase
         $notification = $this->createSentNotification();
         $id = $notification->getId();
 
-        $this->client->request('POST', \sprintf('/n/%d/%s/validated', $id, $notification->getResponseToken()));
+        $this->client->request('POST', \sprintf('/n/%s/%s/validated', $id, $notification->getResponseToken()));
 
         self::assertResponseIsSuccessful();
 
@@ -50,7 +50,7 @@ final class NotificationResponseControllerTest extends WebTestCase
     {
         $notification = $this->createSentNotification();
 
-        $this->client->request('POST', \sprintf('/n/%d/%s/validated', $notification->getId(), 'wrong-token'));
+        $this->client->request('POST', \sprintf('/n/%s/%s/validated', $notification->getId(), 'wrong-token'));
 
         self::assertResponseStatusCodeSame(404);
     }
@@ -61,8 +61,8 @@ final class NotificationResponseControllerTest extends WebTestCase
         $id = $notification->getId();
         $token = $notification->getResponseToken();
 
-        $this->client->request('POST', \sprintf('/n/%d/%s/validated', $id, $token));
-        $this->client->request('POST', \sprintf('/n/%d/%s/not_done', $id, $token));
+        $this->client->request('POST', \sprintf('/n/%s/%s/validated', $id, $token));
+        $this->client->request('POST', \sprintf('/n/%s/%s/not_done', $id, $token));
 
         self::assertResponseIsSuccessful();
 
