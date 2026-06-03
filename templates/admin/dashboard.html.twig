@@ -3,6 +3,13 @@
 {% block content_title %}Tableau de bord{% endblock %}
 
 {% block main %}
+    <form method="post" action="{{ path('admin_trigger_notification') }}" class="mb-4">
+        <input type="hidden" name="_token" value="{{ csrf_token('trigger_notification') }}">
+        <button type="submit" class="btn btn-primary">
+            <i class="fa fa-bell"></i> Déclencher une notif maintenant
+        </button>
+    </form>
+
     <div class="row">
         <div class="col-md-3 col-6 mb-3">
             <div class="card text-bg-success h-100">
