@@ -40,8 +40,8 @@ final class NotificationResponseController
         }
 
         $body = $recorded
-            ? sprintf('Réponse enregistrée : %s. Merci ! 🐾', $status->label())
-            : sprintf('Déjà répondu (%s). 🐾', $notification->getStatus()->label());
+            ? \sprintf('Réponse enregistrée : %s. Merci ! 🐾', $status->label())
+            : \sprintf('Déjà répondu (%s). 🐾', $notification->getStatus()->label());
 
         return new Response($body, Response::HTTP_OK, ['Content-Type' => 'text/plain; charset=utf-8']);
     }

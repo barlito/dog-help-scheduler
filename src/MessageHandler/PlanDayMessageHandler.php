@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\MessageHandler;
 
+use App\Config\NotificationPlanningConfig;
 use App\Entity\Notification;
 use App\Message\PlanDayMessage;
 use App\Message\SendNotificationMessage;
@@ -11,7 +12,6 @@ use App\Repository\NotificationRepository;
 use App\Service\RandomScheduleGenerator;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
@@ -25,22 +25,14 @@ final class PlanDayMessageHandler
         private readonly EntityManagerInterface $em,
         private readonly MessageBusInterface $bus,
         private readonly LoggerInterface $logger,
-        #[Autowire('%env(APP_TIMEZONE)%')]
-        private readonly string $timezone,
-        #[Autowire('%env(NOTIF_WINDOW_START)%')]
-        private readonly string $windowStart,
-        #[Autowire('%env(NOTIF_WINDOW_END)%')]
-        private readonly string $windowEnd,
-        #[Autowire('%env(int:NOTIF_PER_DAY)%')]
-        private readonly int $perDay,
-        #[Autowire('%env(int:NOTIF_MIN_GAP_MINUTES)%')]
-        private readonly int $minGapMinutes,
+        private readonly NotificationPlanningConfig $config,
     ) {
     }
 
+    /** @SuppressWarnings(PHPMD.UnusedFormalParameter) */
     public function __invoke(PlanDayMessage $message): void
     {
-        $now = new \DateTimeImmutable('now', new \DateTimeZone($this->timezone));
+        $now = new \DateTimeImmutable('now', new \DateTimeZone($this->config->timezone));
 
         // Idempotency: never plan the same day twice (e.g. a catch-up run after downtime).
         if ($this->notifications->existsForDay($now)) {
@@ -49,7 +41,7 @@ final class PlanDayMessageHandler
             return;
         }
 
-        $times = $this->generator->generate($now, $this->windowStart, $this->windowEnd, $this->perDay, $this->minGapMinutes);
+        $times = $this->generator->generate($now, $this->config->windowStart, $this->config->windowEnd, $this->config->perDay, $this->config->minGapMinutes);
 
         $created = [];
         foreach ($times as $time) {

@@ -119,7 +119,7 @@ class Notification
     public function recordResponse(NotificationStatus $status): bool
     {
         if (!$status->isAnswered()) {
-            throw new \InvalidArgumentException(sprintf('"%s" is not a valid response status.', $status->value));
+            throw new \InvalidArgumentException(\sprintf('"%s" is not a valid response status.', $status->value));
         }
 
         if ($this->status->isAnswered()) {

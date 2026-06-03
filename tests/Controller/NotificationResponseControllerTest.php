@@ -36,21 +36,21 @@ final class NotificationResponseControllerTest extends WebTestCase
         $notification = $this->createSentNotification();
         $id = $notification->getId();
 
-        $this->client->request('POST', sprintf('/n/%d/%s/validated', $id, $notification->getResponseToken()));
+        $this->client->request('POST', \sprintf('/n/%d/%s/validated', $id, $notification->getResponseToken()));
 
         self::assertResponseIsSuccessful();
 
         $this->em->clear();
         $fresh = $this->em->getRepository(Notification::class)->find($id);
-        self::assertSame(NotificationStatus::VALIDATED, $fresh->getStatus());
-        self::assertNotNull($fresh->getRespondedAt());
+        $this->assertSame(NotificationStatus::VALIDATED, $fresh->getStatus());
+        $this->assertNotNull($fresh->getRespondedAt());
     }
 
     public function testInvalidTokenReturns404(): void
     {
         $notification = $this->createSentNotification();
 
-        $this->client->request('POST', sprintf('/n/%d/%s/validated', $notification->getId(), 'wrong-token'));
+        $this->client->request('POST', \sprintf('/n/%d/%s/validated', $notification->getId(), 'wrong-token'));
 
         self::assertResponseStatusCodeSame(404);
     }
@@ -61,13 +61,13 @@ final class NotificationResponseControllerTest extends WebTestCase
         $id = $notification->getId();
         $token = $notification->getResponseToken();
 
-        $this->client->request('POST', sprintf('/n/%d/%s/validated', $id, $token));
-        $this->client->request('POST', sprintf('/n/%d/%s/not_done', $id, $token));
+        $this->client->request('POST', \sprintf('/n/%d/%s/validated', $id, $token));
+        $this->client->request('POST', \sprintf('/n/%d/%s/not_done', $id, $token));
 
         self::assertResponseIsSuccessful();
 
         $this->em->clear();
         $fresh = $this->em->getRepository(Notification::class)->find($id);
-        self::assertSame(NotificationStatus::VALIDATED, $fresh->getStatus(), 'The first reply must not be overwritten.');
+        $this->assertSame(NotificationStatus::VALIDATED, $fresh->getStatus(), 'The first reply must not be overwritten.');
     }
 }

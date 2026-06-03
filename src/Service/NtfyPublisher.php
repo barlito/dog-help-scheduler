@@ -44,8 +44,8 @@ final class NtfyPublisher
     /**
      * Low-level publish used by the fake-walk message and the debug command.
      *
-     * @param string[]                                                         $tags
-     * @param array<int, array<string, mixed>>                                 $actions
+     * @param string[]                         $tags
+     * @param array<int, array<string, mixed>> $actions
      */
     public function publish(string $title, string $message, array $tags = [], array $actions = []): void
     {
@@ -81,7 +81,7 @@ final class NtfyPublisher
 
     private function callbackUrl(Notification $notification, NotificationStatus $status): string
     {
-        return sprintf(
+        return \sprintf(
             '%s/n/%d/%s/%s',
             rtrim($this->publicUrl, '/'),
             $notification->getId(),

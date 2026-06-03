@@ -53,7 +53,8 @@ final class DashboardController extends AbstractDashboardController
     {
         return Dashboard::new()
             ->setTitle('🐕 Dog Help Scheduler')
-            ->setTranslationDomain('messages');
+            ->setTranslationDomain('messages')
+        ;
     }
 
     public function configureMenuItems(): iterable
