@@ -10,7 +10,8 @@ namespace App\Message;
  */
 final class SendNotificationMessage
 {
-    public function __construct(public readonly int $notificationId)
+    /** @param string $notificationId the notification UUID (RFC 4122) */
+    public function __construct(public readonly string $notificationId)
     {
     }
 }

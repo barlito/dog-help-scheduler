@@ -165,6 +165,16 @@ make doctrine.migration.migrate
 
 The project uses configurations from `vendor/barlito/utils/config/` for all quality tools.
 
+> ⚠️ **PHPMD is temporarily disabled.** Its `pdepend` dependency has no stable release
+> compatible with `symfony/config ^8` (only `3.x-dev`), so it was removed from `composer.json`
+> and from the `code-quality` CI workflow when upgrading to Symfony 8. **Re-enable it once
+> pdepend ships a Symfony 8 release** — check from time to time:
+> ```bash
+> docker exec $(docker ps -q --filter name=doghelp_php) composer require --dev phpmd/phpmd
+> ```
+> If it installs cleanly, restore the `make phpmd` step in `.github/workflows/code-quality.yaml`.
+> In the meantime, `php-cs-fixer` and `phpcs` remain enforced.
+
 ### Check Code Style
 
 ```bash

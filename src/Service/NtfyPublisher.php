@@ -24,6 +24,8 @@ final class NtfyPublisher
         private readonly string $ntfyTopic,
         #[Autowire('%env(APP_PUBLIC_URL)%')]
         private readonly string $publicUrl,
+        #[Autowire('%env(NTFY_ICON_URL)%')]
+        private readonly string $iconUrl = '',
     ) {
     }
 
@@ -49,14 +51,19 @@ final class NtfyPublisher
      */
     public function publish(string $title, string $message, array $tags = [], array $actions = []): void
     {
+        $payload = [
+            'topic' => $this->ntfyTopic,
+            'title' => $title,
+            'message' => $message,
+            'tags' => $tags,
+            'actions' => $actions,
+        ];
+        if ('' !== $this->iconUrl) {
+            $payload['icon'] = $this->iconUrl;
+        }
+
         $response = $this->httpClient->request('POST', rtrim($this->ntfyServer, '/'), [
-            'json' => [
-                'topic' => $this->ntfyTopic,
-                'title' => $title,
-                'message' => $message,
-                'tags' => $tags,
-                'actions' => $actions,
-            ],
+            'json' => $payload,
         ]);
 
         // Force the request to resolve and surface transport/HTTP errors to the caller.
@@ -82,7 +89,7 @@ final class NtfyPublisher
     private function callbackUrl(Notification $notification, NotificationStatus $status): string
     {
         return \sprintf(
-            '%s/n/%d/%s/%s',
+            '%s/n/%s/%s/%s',
             rtrim($this->publicUrl, '/'),
             $notification->getId(),
             $notification->getResponseToken(),

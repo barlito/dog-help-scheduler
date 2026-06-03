@@ -42,6 +42,10 @@ services:
             - php
             - db
         command: php bin/console messenger:consume scheduler_app async --time-limit=3600 -vv
+        # The base image HEALTHCHECK probes the Caddy metrics endpoint (:2019); the
+        # worker doesn't run the web server, so disable it to avoid false "unhealthy".
+        healthcheck:
+            disable: true
         volumes:
             - ./:/app
             - ~/.composer:/home/www/.composer:delegated
@@ -52,7 +56,7 @@ services:
             - doghelp_internal
 
     db:
-        image: postgres:${POSTGRES_VERSION:-16}-alpine
+        image: postgres:${POSTGRES_VERSION:-18}-alpine
         environment:
             POSTGRES_DB: ${POSTGRES_DB:-app}
             POSTGRES_USER: ${POSTGRES_USER:-app}
@@ -63,7 +67,9 @@ services:
             retries: 5
             start_period: 60s
         volumes:
-            - doghelp_db_data:/var/lib/postgresql/data:rw
+            # Postgres 18+ images store data in /var/lib/postgresql (major-version
+            # subdirs), not /var/lib/postgresql/data anymore.
+            - doghelp_db_data:/var/lib/postgresql:rw
         networks:
             - doghelp_internal
 

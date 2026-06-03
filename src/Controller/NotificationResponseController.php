@@ -19,7 +19,7 @@ final class NotificationResponseController
     #[Route(
         '/n/{id}/{token}/{action}',
         name: 'notification_response',
-        requirements: ['id' => '\d+', 'action' => 'validated|postponed|not_done'],
+        requirements: ['id' => '[0-9a-fA-F-]{36}', 'action' => 'validated|postponed|not_done'],
         methods: ['GET', 'POST'],
     )]
     public function __invoke(
@@ -34,7 +34,14 @@ final class NotificationResponseController
 
         $status = NotificationStatus::from($action);
 
-        $recorded = $notification->recordResponse($status);
+        try {
+            $recorded = $notification->recordResponse($status);
+        } catch (\InvalidArgumentException) {
+            // Defensive: the route already restricts {action} to answerable statuses,
+            // but guard against future drift between the route and the enum.
+            return new Response('Action invalide.', Response::HTTP_BAD_REQUEST);
+        }
+
         if ($recorded) {
             $em->flush();
         }
