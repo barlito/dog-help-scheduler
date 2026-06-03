@@ -28,6 +28,7 @@ final class NotificationTypeCrudController extends AbstractCrudController
             ->setEntityLabelInPlural('Types de notification')
             ->setDefaultSort(['label' => 'ASC'])
             ->setPageTitle('index', 'Types de notification')
+            ->renderContentMaximized()
         ;
     }
 
@@ -47,10 +48,10 @@ final class NotificationTypeCrudController extends AbstractCrudController
             ->setHelp('Emojis/mots-clés ntfy, ex. "dog2", "walking".')
         ;
         yield TextField::new('windowStart', 'Début fenêtre')
-            ->setHelp('Format HH:MM.')
+            ->setFormTypeOption('attr', ['type' => 'time'])
         ;
         yield TextField::new('windowEnd', 'Fin fenêtre')
-            ->setHelp('Format HH:MM.')
+            ->setFormTypeOption('attr', ['type' => 'time'])
         ;
         yield IntegerField::new('perDay', 'Nb / jour');
         yield IntegerField::new('minGapMinutes', 'Écart min (min)')->hideOnIndex();

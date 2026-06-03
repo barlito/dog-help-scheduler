@@ -54,6 +54,7 @@ final class DashboardController extends AbstractDashboardController
         return Dashboard::new()
             ->setTitle('🐕 Dog Help Scheduler')
             ->setTranslationDomain('messages')
+            ->renderContentMaximized()
         ;
     }
 
