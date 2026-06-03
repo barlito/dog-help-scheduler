@@ -46,7 +46,7 @@ final class NotifyTestCommand extends Command
             return Command::FAILURE;
         }
 
-        $io->success(\sprintf('Test notification #%d sent to ntfy. Tap a button on your phone, then check the backoffice.', $notification->getId()));
+        $io->success(\sprintf('Test notification #%s sent to ntfy. Tap a button on your phone, then check the backoffice.', $notification->getId()));
 
         return Command::SUCCESS;
     }
