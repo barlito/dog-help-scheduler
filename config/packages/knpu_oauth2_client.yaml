@@ -1,0 +1,9 @@
+knpu_oauth2_client:
+    clients:
+        discord:
+            type: generic
+            provider_class: Wohali\OAuth2\Client\Provider\Discord
+            client_id: '%env(DISCORD_CLIENT_ID)%'
+            client_secret: '%env(DISCORD_CLIENT_SECRET)%'
+            redirect_route: connect_discord_check
+            redirect_params: {}
