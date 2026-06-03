@@ -42,6 +42,10 @@ services:
             - php
             - db
         command: php bin/console messenger:consume scheduler_app async --time-limit=3600 -vv
+        # The base image HEALTHCHECK probes the Caddy metrics endpoint (:2019); the
+        # worker doesn't run the web server, so disable it to avoid false "unhealthy".
+        healthcheck:
+            disable: true
         volumes:
             - ./:/app
             - ~/.composer:/home/www/.composer:delegated
