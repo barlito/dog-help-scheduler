@@ -6,9 +6,11 @@ namespace App\Tests\Controller;
 
 use App\Entity\Notification;
 use App\Enum\NotificationStatus;
+use App\Message\SendNotificationMessage;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 final class NotificationResponseControllerTest extends WebTestCase
 {
@@ -44,6 +46,27 @@ final class NotificationResponseControllerTest extends WebTestCase
         $fresh = $this->em->getRepository(Notification::class)->find($id);
         $this->assertSame(NotificationStatus::VALIDATED, $fresh->getStatus());
         $this->assertNotNull($fresh->getRespondedAt());
+    }
+
+    public function testPostponeReschedulesAResend(): void
+    {
+        $notification = $this->createSentNotification();
+        $id = $notification->getId();
+
+        $this->client->request('POST', \sprintf('/n/%s/%s/postponed', $id, $notification->getResponseToken()));
+
+        self::assertResponseIsSuccessful();
+
+        // Status recorded as postponed...
+        $this->em->clear();
+        $fresh = $this->em->getRepository(Notification::class)->find($id);
+        $this->assertSame(NotificationStatus::POSTPONED, $fresh->getStatus());
+
+        // ...and a delayed resend was dispatched.
+        /** @var InMemoryTransport $transport */
+        $transport = self::getContainer()->get('messenger.transport.async');
+        $this->assertCount(1, $transport->getSent());
+        $this->assertInstanceOf(SendNotificationMessage::class, $transport->getSent()[0]->getMessage());
     }
 
     public function testInvalidTokenReturns404(): void
