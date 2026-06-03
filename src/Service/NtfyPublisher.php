@@ -4,96 +4,44 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Entity\Notification;
-use App\Enum\NotificationStatus;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
- * Publishes notifications to ntfy with three "http" quick-reply buttons.
+ * Thin transport that publishes a prepared {@see NtfyMessage} to ntfy.
  *
- * @see https://docs.ntfy.sh/publish/#action-buttons
+ * The server base URL is configured on the scoped `ntfy.client` HTTP client
+ * (see config/packages/framework.yaml); this class only knows how to talk to ntfy.
+ *
+ * @see https://docs.ntfy.sh/publish/#publish-as-json
  */
 final class NtfyPublisher
 {
     public function __construct(
-        private readonly HttpClientInterface $httpClient,
-        #[Autowire('%env(NTFY_SERVER)%')]
-        private readonly string $ntfyServer,
+        private readonly HttpClientInterface $ntfyClient,
         #[Autowire('%env(NTFY_TOPIC)%')]
         private readonly string $ntfyTopic,
-        #[Autowire('%env(APP_PUBLIC_URL)%')]
-        private readonly string $publicUrl,
-        #[Autowire('%env(NTFY_ICON_URL)%')]
-        private readonly string $iconUrl = '',
     ) {
     }
 
-    public function publishFakeWalk(Notification $notification): void
-    {
-        $this->publish(
-            title: '🐕 Fausse sortie',
-            message: "C'est l'heure d'une fausse sortie pour aider loulou à rester calme seul. Tu l'as faite ?",
-            tags: ['dog2', 'walking'],
-            actions: [
-                $this->httpAction('✅ Validé', $notification, NotificationStatus::VALIDATED),
-                $this->httpAction('🔁 Reporter', $notification, NotificationStatus::POSTPONED),
-                $this->httpAction('❌ Non effectué', $notification, NotificationStatus::NOT_DONE),
-            ],
-        );
-    }
-
-    /**
-     * Low-level publish used by the fake-walk message and the debug command.
-     *
-     * @param string[]                         $tags
-     * @param array<int, array<string, mixed>> $actions
-     */
-    public function publish(string $title, string $message, array $tags = [], array $actions = []): void
+    public function publish(NtfyMessage $message): void
     {
         $payload = [
             'topic' => $this->ntfyTopic,
-            'title' => $title,
-            'message' => $message,
-            'tags' => $tags,
-            'actions' => $actions,
+            'title' => $message->title,
+            'message' => $message->message,
+            'tags' => $message->tags,
+            'actions' => $message->actions,
         ];
-        if ('' !== $this->iconUrl) {
-            $payload['icon'] = $this->iconUrl;
+        if (null !== $message->icon) {
+            $payload['icon'] = $message->icon;
         }
 
-        $response = $this->httpClient->request('POST', rtrim($this->ntfyServer, '/'), [
-            'json' => $payload,
-        ]);
+        // base_uri of the scoped client points at the ntfy server (JSON publish endpoint).
+        $response = $this->ntfyClient->request('POST', '', ['json' => $payload]);
 
         // Force the request to resolve and surface transport/HTTP errors to the caller.
         $response->getStatusCode();
         $response->getContent();
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function httpAction(string $label, Notification $notification, NotificationStatus $status): array
-    {
-        return [
-            'action' => 'http',
-            'label' => $label,
-            'url' => $this->callbackUrl($notification, $status),
-            'method' => 'POST',
-            // Dismiss the notification from the phone once the button is tapped.
-            'clear' => true,
-        ];
-    }
-
-    private function callbackUrl(Notification $notification, NotificationStatus $status): string
-    {
-        return \sprintf(
-            '%s/n/%s/%s/%s',
-            rtrim($this->publicUrl, '/'),
-            $notification->getId(),
-            $notification->getResponseToken(),
-            $status->value,
-        );
     }
 }

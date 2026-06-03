@@ -38,6 +38,19 @@ final class AdminDashboardTest extends WebTestCase
         self::assertResponseIsSuccessful();
     }
 
+    public function testNotificationTypeCrudListLoads(): void
+    {
+        $client = static::createClient();
+        $provider = self::getContainer()->get('security.user.provider.concrete.admin_provider');
+        \assert($provider instanceof UserProviderInterface);
+        $client->loginUser($provider->loadUserByIdentifier('admin'), 'main');
+
+        $crawler = $client->request('GET', '/admin');
+        $client->click($crawler->selectLink('Types de notif')->link());
+
+        self::assertResponseIsSuccessful();
+    }
+
     public function testDashboardRedirectsAnonymousToLogin(): void
     {
         $client = static::createClient();

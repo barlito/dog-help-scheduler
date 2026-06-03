@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\Notification;
+use App\Entity\NotificationType;
 use App\Enum\NotificationStatus;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -19,8 +20,8 @@ class NotificationRepository extends ServiceEntityRepository
         parent::__construct($registry, Notification::class);
     }
 
-    /** True when at least one notification is already planned/sent for the given day. */
-    public function existsForDay(\DateTimeImmutable $day): bool
+    /** True when notifications of this type are already planned for the given day. */
+    public function existsForDayAndType(\DateTimeImmutable $day, NotificationType $type): bool
     {
         $start = $day->setTime(0, 0);
         $end = $start->modify('+1 day');
@@ -29,8 +30,10 @@ class NotificationRepository extends ServiceEntityRepository
             ->select('COUNT(n.id)')
             ->andWhere('n.scheduledAt >= :start')
             ->andWhere('n.scheduledAt < :end')
+            ->andWhere('n.type = :type')
             ->setParameter('start', $start)
             ->setParameter('end', $end)
+            ->setParameter('type', $type)
             ->getQuery()
             ->getSingleScalarResult()
         ;
