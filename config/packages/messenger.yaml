@@ -1,22 +1,25 @@
 framework:
     messenger:
-        # Uncomment this (and the failed transport below) to send failed messages to this transport for later handling.
-        # failure_transport: failed
+        failure_transport: failed
 
         transports:
             # https://symfony.com/doc/current/messenger.html#transport-configuration
-            # async: '%env(MESSENGER_TRANSPORT_DSN)%'
-            # failed: 'doctrine://default?queue_name=failed'
+            async:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options:
+                    # Let the worker pick delayed messages as soon as they are due (LISTEN/NOTIFY).
+                    use_notify: true
+            failed: 'doctrine://default?queue_name=failed'
             sync: 'sync://'
 
         routing:
-            # Route your messages to the transports
-            # 'App\Message\YourMessage': async
+            # Sent at its randomly-picked time via a DelayStamp, handled by the worker.
+            App\Message\SendNotificationMessage: async
+            # PlanDayMessage is delivered by the Scheduler transport (scheduler_app)
+            # and handled directly by the worker — no routing needed here.
 
-# when@test:
-#    framework:
-#        messenger:
-#            transports:
-#                # replace with your transport name here (e.g., my_transport: 'in-memory://')
-#                # For more Messenger testing tools, see https://github.com/zenstruck/messenger-test
-#                async: 'in-memory://'
+when@test:
+    framework:
+        messenger:
+            transports:
+                async: 'in-memory://'

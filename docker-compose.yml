@@ -34,6 +34,23 @@ services:
             - traefik_traefik_proxy
             - doghelp_internal
 
+    # Messenger worker: consumes the Scheduler transport (plans each day) AND the
+    # async Doctrine transport (sends ntfy notifications at their scheduled time).
+    worker:
+        image: doghelp-php
+        depends_on:
+            - php
+            - db
+        command: php bin/console messenger:consume scheduler_app async --time-limit=3600 -vv
+        volumes:
+            - ./:/app
+            - ~/.composer:/home/www/.composer:delegated
+        deploy:
+            restart_policy:
+                condition: any
+        networks:
+            - doghelp_internal
+
     db:
         image: postgres:${POSTGRES_VERSION:-16}-alpine
         environment:
