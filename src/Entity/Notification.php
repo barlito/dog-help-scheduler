@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Enum\NotificationStatus;
-use App\Enum\NotificationType;
 use App\Repository\NotificationRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -23,8 +22,9 @@ class Notification
     #[ORM\CustomIdGenerator(class: 'doctrine.uuid_generator')]
     private ?Uuid $id = null;
 
-    #[ORM\Column(length: 32, enumType: NotificationType::class)]
-    private NotificationType $type = NotificationType::FAKE_WALK;
+    #[ORM\ManyToOne(targetEntity: NotificationType::class)]
+    #[ORM\JoinColumn(nullable: false)]
+    private NotificationType $type;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private \DateTimeImmutable $scheduledAt;
@@ -45,10 +45,10 @@ class Notification
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private \DateTimeImmutable $createdAt;
 
-    public function __construct(\DateTimeImmutable $scheduledAt, NotificationType $type = NotificationType::FAKE_WALK)
+    public function __construct(NotificationType $type, \DateTimeImmutable $scheduledAt)
     {
-        $this->scheduledAt = $scheduledAt;
         $this->type = $type;
+        $this->scheduledAt = $scheduledAt;
         $this->status = NotificationStatus::PLANNED;
         $this->responseToken = Uuid::v4()->toRfc4122();
         $this->createdAt = new \DateTimeImmutable();
@@ -67,7 +67,7 @@ class Notification
     /** Human-readable type, used by the backoffice display. */
     public function getTypeLabel(): string
     {
-        return $this->type->label();
+        return $this->type->getLabel();
     }
 
     public function getScheduledAt(): \DateTimeImmutable

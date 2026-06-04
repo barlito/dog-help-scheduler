@@ -54,6 +54,7 @@ final class DashboardController extends AbstractDashboardController
         return Dashboard::new()
             ->setTitle('🐕 Dog Help Scheduler')
             ->setTranslationDomain('messages')
+            ->renderContentMaximized()
         ;
     }
 
@@ -61,5 +62,6 @@ final class DashboardController extends AbstractDashboardController
     {
         yield MenuItem::linkToDashboard('Tableau de bord', 'fa fa-chart-line');
         yield MenuItem::linkTo(NotificationCrudController::class, 'Notifications', 'fa fa-bell');
+        yield MenuItem::linkTo(NotificationTypeCrudController::class, 'Types de notif', 'fa fa-sliders');
     }
 }

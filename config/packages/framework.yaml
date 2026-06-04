@@ -5,6 +5,12 @@ framework:
     # Note that the session will be started ONLY if you read or write from it.
     session: true
 
+    http_client:
+        scoped_clients:
+            # Injected into NtfyPublisher as `HttpClientInterface $ntfyClient`.
+            ntfy.client:
+                base_uri: '%env(NTFY_SERVER)%'
+
     #esi: true
     #fragments: true
 

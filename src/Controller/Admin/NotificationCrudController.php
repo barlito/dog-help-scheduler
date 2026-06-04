@@ -31,6 +31,7 @@ final class NotificationCrudController extends AbstractCrudController
             ->setEntityLabelInPlural('Notifications')
             ->setDefaultSort(['scheduledAt' => 'DESC'])
             ->setPageTitle('index', 'Notifications')
+            ->renderContentMaximized()
         ;
     }
 

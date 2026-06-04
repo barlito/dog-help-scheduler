@@ -6,6 +6,7 @@ namespace App\MessageHandler;
 
 use App\Message\SendNotificationMessage;
 use App\Repository\NotificationRepository;
+use App\Service\NtfyMessageFactory;
 use App\Service\NtfyPublisher;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -18,6 +19,7 @@ final class SendNotificationMessageHandler
     public function __construct(
         private readonly NotificationRepository $notifications,
         private readonly EntityManagerInterface $em,
+        private readonly NtfyMessageFactory $messageFactory,
         private readonly NtfyPublisher $publisher,
         private readonly LoggerInterface $logger,
     ) {
@@ -38,7 +40,7 @@ final class SendNotificationMessageHandler
         }
 
         try {
-            $this->publisher->publishFakeWalk($notification);
+            $this->publisher->publish($this->messageFactory->forNotification($notification));
             $notification->markSent();
             $this->em->flush();
         } catch (\Throwable $e) {

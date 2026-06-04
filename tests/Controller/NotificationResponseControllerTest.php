@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Controller;
 
 use App\Entity\Notification;
+use App\Entity\NotificationType;
 use App\Enum\NotificationStatus;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -23,7 +24,15 @@ final class NotificationResponseControllerTest extends WebTestCase
 
     private function createSentNotification(): Notification
     {
-        $notification = new Notification(new \DateTimeImmutable());
+        $type = (new NotificationType())
+            ->setKey('resp_' . uniqid())
+            ->setLabel('Test')
+            ->setTitle('Test')
+            ->setMessage('Test message')
+        ;
+        $this->em->persist($type);
+
+        $notification = new Notification($type, new \DateTimeImmutable());
         $notification->markSent();
         $this->em->persist($notification);
         $this->em->flush();
