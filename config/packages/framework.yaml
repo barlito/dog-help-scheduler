@@ -5,6 +5,12 @@ framework:
     # Note that the session will be started ONLY if you read or write from it.
     session: true
 
+    # Behind Traefik (TLS terminated at the proxy, HTTP to the container): trust the
+    # private-range proxy so Symfony honours X-Forwarded-Proto and generates https URLs
+    # (Discord rejects non-https OAuth redirect URIs).
+    trusted_proxies: 'private_ranges'
+    trusted_headers: ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-prefix']
+
     http_client:
         scoped_clients:
             # Injected into NtfyPublisher as `HttpClientInterface $ntfyClient`.
