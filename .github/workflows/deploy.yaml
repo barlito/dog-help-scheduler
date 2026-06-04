@@ -3,10 +3,6 @@ name: Deploy Workflow
 on:
   workflow_dispatch:
     inputs:
-      tag:
-        description: "Tag de release à déployer (ex: v1.0.0)"
-        required: true
-        type: string
       re-deploy:
         description: "Full re-deploy (undeploy + redeploy) au lieu d'un rolling update"
         required: true
@@ -19,7 +15,6 @@ jobs:
 
     env:
       DOCKER_HOST: ssh://${{ vars.SERVER_USERNAME }}@${{ vars.SERVER_HOST }}:${{ vars.SERVER_PORT }}
-      TAG: ${{ inputs.tag }}
       # Substitués dans docker-compose-prod.yml au moment du stack deploy
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
       APP_SECRET: ${{ secrets.APP_SECRET }}
@@ -55,7 +50,7 @@ jobs:
           # `|| true` pour tolérer "rien à supprimer" sur le tout premier deploy
           # (docker stack rm exit non-zero si le stack n'existe pas encore).
           make undeploy || true
-          make deploy.prod
+          TAG=$GITHUB_REF_NAME make deploy.prod
 
       - name: Drain & stop worker
         if: ${{ ! inputs.re-deploy }}
@@ -65,14 +60,14 @@ jobs:
         if: ${{ ! inputs.re-deploy }}
         run: |
           make db.backup
-          make docker.service.update args="--image barlito/doghelp:$TAG doghelp_php"
+          make docker.service.update args="--image barlito/doghelp:$GITHUB_REF_NAME doghelp_php"
           castor barlito:castor:wait-php-container
           make doctrine.migrate
 
       - name: Update & restart worker
         if: ${{ ! inputs.re-deploy }}
         run: |
-          make docker.service.update args="--image barlito/doghelp-worker:$TAG doghelp_worker"
+          make docker.service.update args="--image barlito/doghelp-worker:$GITHUB_REF_NAME doghelp_worker"
           docker service scale doghelp_worker=1
 
       - name: Smoke test
