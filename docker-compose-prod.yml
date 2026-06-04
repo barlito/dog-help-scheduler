@@ -1,0 +1,112 @@
+services:
+    php:
+        image: barlito/doghelp:${TAG:-latest}
+        environment:
+            APP_ENV: prod
+            APP_SECRET: "${APP_SECRET}"
+            SERVER_NAME: ":80"
+            TZ: Europe/Paris
+            APP_TIMEZONE: Europe/Paris
+            DATABASE_URL: "postgresql://doghelp:${DB_PASSWORD}@doghelp_db:5432/doghelp?serverVersion=18&charset=utf8"
+            MESSENGER_TRANSPORT_DSN: "doctrine://default?auto_setup=0"
+            # URL publique : callbacks ntfy, redirect Discord, génération d'URLs CLI.
+            DEFAULT_URI: "https://doghelp.barlito.fr"
+            APP_PUBLIC_URL: "https://doghelp.barlito.fr"
+            NTFY_SERVER: "https://ntfy.sh"
+            NTFY_TOPIC: "${NTFY_TOPIC}"
+            NTFY_ICON_URL: "https://doghelp.barlito.fr/icons/dog.webp"
+            DISCORD_CLIENT_ID: "${DISCORD_CLIENT_ID}"
+            DISCORD_CLIENT_SECRET: "${DISCORD_CLIENT_SECRET}"
+            DISCORD_ALLOWED_USER_ID: "${DISCORD_ALLOWED_USER_ID}"
+        deploy:
+            replicas: 1
+            update_config:
+                order: stop-first
+                parallelism: 1
+                monitor: 30s
+                failure_action: rollback
+                max_failure_ratio: 0
+            rollback_config:
+                parallelism: 1
+                order: stop-first
+            labels:
+                - traefik.enable=true
+
+                - traefik.http.services.doghelp.loadbalancer.server.port=80
+
+                - traefik.http.routers.doghelp.rule=Host(`doghelp.barlito.fr`)
+                - traefik.http.routers.doghelp.entrypoints=http
+                - traefik.http.routers.doghelp.middlewares=redirect-to-https@file
+
+                - traefik.http.routers.doghelp-secure.rule=Host(`doghelp.barlito.fr`)
+                - traefik.http.routers.doghelp-secure.entrypoints=https
+                - traefik.http.routers.doghelp-secure.tls=true
+                - traefik.http.routers.doghelp-secure.tls.certresolver=letsencrypt
+        networks:
+            - traefik_traefik_proxy
+            - doghelp_internal
+
+    # Consomme le transport Scheduler (planifie chaque jour) ET l'async Doctrine
+    # (envoie les notifs ntfy à l'heure prévue / les reports différés).
+    worker:
+        image: barlito/doghelp-worker:${TAG:-latest}
+        environment:
+            APP_ENV: prod
+            APP_SECRET: "${APP_SECRET}"
+            TZ: Europe/Paris
+            APP_TIMEZONE: Europe/Paris
+            DATABASE_URL: "postgresql://doghelp:${DB_PASSWORD}@doghelp_db:5432/doghelp?serverVersion=18&charset=utf8"
+            MESSENGER_TRANSPORT_DSN: "doctrine://default?auto_setup=0"
+            # Le worker construit les liens de callback ntfy → a besoin de l'URL publique.
+            DEFAULT_URI: "https://doghelp.barlito.fr"
+            APP_PUBLIC_URL: "https://doghelp.barlito.fr"
+            NTFY_SERVER: "https://ntfy.sh"
+            NTFY_TOPIC: "${NTFY_TOPIC}"
+            NTFY_ICON_URL: "https://doghelp.barlito.fr/icons/dog.webp"
+        stop_grace_period: 60s
+        deploy:
+            replicas: 1
+            update_config:
+                order: stop-first
+                parallelism: 1
+                monitor: 30s
+                failure_action: rollback
+            resources:
+                limits:
+                    memory: 512M
+        networks:
+            - doghelp_internal
+
+    db:
+        image: postgres:18
+        environment:
+            POSTGRES_USER: doghelp
+            POSTGRES_PASSWORD: "${DB_PASSWORD}"
+            POSTGRES_DB: doghelp
+            TZ: Europe/Paris
+            PGTZ: Europe/Paris
+        volumes:
+            # Postgres 18+ stocke les data dans /var/lib/postgresql/{majorVersion}/,
+            # on monte donc le parent. /backups est le dossier host pour pg_dump.
+            - doghelp_db_data:/var/lib/postgresql:rw
+            - /srv/doghelp/backups:/backups
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U doghelp"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        deploy:
+            replicas: 1
+            update_config:
+                order: stop-first
+        networks:
+            - doghelp_internal
+
+volumes:
+    doghelp_db_data:
+
+networks:
+    traefik_traefik_proxy:
+        external: true
+    doghelp_internal:
+        driver: overlay
