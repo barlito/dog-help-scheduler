@@ -64,12 +64,13 @@ final class AdminDashboardTest extends WebTestCase
         self::assertResponseIsSuccessful();
     }
 
-    public function testDashboardRedirectsAnonymousToLogin(): void
+    public function testDashboardRedirectsAnonymousToDiscordLogin(): void
     {
         $client = static::createClient();
         $client->request('GET', '/admin');
 
+        // Seamless entry point: anonymous access starts the Discord login directly.
         self::assertResponseRedirects();
-        $this->assertStringContainsString('/login', $client->getResponse()->headers->get('Location') ?? '');
+        $this->assertStringContainsString('/connect/discord', $client->getResponse()->headers->get('Location') ?? '');
     }
 }
