@@ -14,8 +14,8 @@ final class SecurityController extends AbstractController
     #[Route('/login', name: 'login')]
     public function login(AuthenticationUtils $authenticationUtils): Response
     {
-        // Reuse EasyAdmin's ready-made login page (no custom template needed).
-        return $this->render('@EasyAdmin/page/login.html.twig', [
+        // EasyAdmin's login page, extended to add the "Login with Discord" button.
+        return $this->render('admin/login.html.twig', [
             'error' => $authenticationUtils->getLastAuthenticationError(),
             'last_username' => $authenticationUtils->getLastUsername(),
             'page_title' => '🐕 Dog Help Scheduler',

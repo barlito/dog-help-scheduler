@@ -21,6 +21,9 @@ security:
         main:
             lazy: true
             provider: admin_provider
+            custom_authenticators:
+                - App\Security\DiscordAuthenticator
+            # Kept as a fallback so you are never locked out if Discord is unavailable.
             form_login:
                 login_path: login
                 check_path: login

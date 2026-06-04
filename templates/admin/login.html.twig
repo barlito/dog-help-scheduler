@@ -1,0 +1,9 @@
+{% extends '@EasyAdmin/page/login.html.twig' %}
+
+{% block login_form_footer %}
+    <div class="mt-3">
+        <a href="{{ path('connect_discord_start') }}" class="btn btn-secondary" style="width: 100%;">
+            <i class="fab fa-discord"></i> Se connecter avec Discord
+        </a>
+    </div>
+{% endblock %}
