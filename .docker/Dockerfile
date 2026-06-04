@@ -30,6 +30,10 @@ RUN install-php-extensions \
 #    bcmath \
 #    amqp
 
+# Shared PHP config (dev + prod) — notably date.timezone = Europe/Paris so dates
+# are created/hydrated/displayed in the app timezone instead of UTC.
+COPY --link .docker/php/app.ini $PHP_INI_DIR/conf.d/
+
 ENV COMPOSER_HOME=/home/www/.composer
 # https://getcomposer.org/doc/03-cli.md#composer-allow-superuser
 ENV COMPOSER_ALLOW_SUPERUSER=1
