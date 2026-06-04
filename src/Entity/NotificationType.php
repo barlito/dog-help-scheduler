@@ -9,6 +9,8 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 /**
  * A configurable kind of notification (e.g. "fake walk", "give water"), carrying both
@@ -25,18 +27,23 @@ class NotificationType implements \Stringable
 
     /** Stable machine key (e.g. "fake_walk"). */
     #[ORM\Column(length: 64, unique: true)]
+    #[Assert\NotBlank]
+    #[Assert\Regex('/^[a-z0-9_]+$/', message: 'Lettres minuscules, chiffres et "_" uniquement.')]
     private string $key = '';
 
     /** Human-readable name shown in the backoffice. */
     #[ORM\Column(length: 120)]
+    #[Assert\NotBlank]
     private string $label = '';
 
     /** ntfy notification title. */
     #[ORM\Column(length: 200)]
+    #[Assert\NotBlank]
     private string $title = '';
 
     /** ntfy notification message body. */
     #[ORM\Column(type: Types::TEXT)]
+    #[Assert\NotBlank]
     private string $message = '';
 
     /**
@@ -49,18 +56,22 @@ class NotificationType implements \Stringable
 
     /** Daily window start, "HH:MM". */
     #[ORM\Column(length: 5)]
+    #[Assert\Regex('/^([01]\d|2[0-3]):[0-5]\d$/', message: 'Format attendu HH:MM.')]
     private string $windowStart = '08:00';
 
     /** Daily window end, "HH:MM". */
     #[ORM\Column(length: 5)]
+    #[Assert\Regex('/^([01]\d|2[0-3]):[0-5]\d$/', message: 'Format attendu HH:MM.')]
     private string $windowEnd = '20:00';
 
     /** Number of notifications planned per day. */
     #[ORM\Column]
+    #[Assert\Positive]
     private int $perDay = 4;
 
     /** Minimum minutes between two notifications of this type. */
     #[ORM\Column]
+    #[Assert\PositiveOrZero]
     private int $minGapMinutes = 60;
 
     /** When false, the scheduler skips this type entirely. */
@@ -201,5 +212,36 @@ class NotificationType implements \Stringable
     public function __toString(): string
     {
         return '' !== $this->label ? $this->label : $this->key;
+    }
+
+    /**
+     * Reject windows the scheduler could not honour, so the error shows in the form
+     * instead of crashing the planner later.
+     */
+    #[Assert\Callback]
+    public function validatePlanning(ExecutionContextInterface $context): void
+    {
+        if (!preg_match('/^\d{2}:\d{2}$/', $this->windowStart) || !preg_match('/^\d{2}:\d{2}$/', $this->windowEnd)) {
+            return; // invalid time format already reported by the field constraints
+        }
+
+        $start = (int) substr($this->windowStart, 0, 2) * 60 + (int) substr($this->windowStart, 3, 2);
+        $end = (int) substr($this->windowEnd, 0, 2) * 60 + (int) substr($this->windowEnd, 3, 2);
+
+        if ($end <= $start) {
+            $context->buildViolation('La fin de fenêtre doit être après le début.')
+                ->atPath('windowEnd')->addViolation()
+            ;
+
+            return;
+        }
+
+        if (($end - $start) < ($this->perDay - 1) * $this->minGapMinutes) {
+            $context->buildViolation('Impossible de caser {{ count }} notifications espacées de {{ gap }} min dans cette fenêtre.')
+                ->setParameter('{{ count }}', (string) $this->perDay)
+                ->setParameter('{{ gap }}', (string) $this->minGapMinutes)
+                ->atPath('perDay')->addViolation()
+            ;
+        }
     }
 }
