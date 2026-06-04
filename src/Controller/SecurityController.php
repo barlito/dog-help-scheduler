@@ -14,16 +14,10 @@ final class SecurityController extends AbstractController
     #[Route('/login', name: 'login')]
     public function login(AuthenticationUtils $authenticationUtils): Response
     {
-        // EasyAdmin's login page, extended to add the "Login with Discord" button.
+        // Discord-only login page (the form is replaced by the Discord button).
         return $this->render('admin/login.html.twig', [
             'error' => $authenticationUtils->getLastAuthenticationError(),
-            'last_username' => $authenticationUtils->getLastUsername(),
             'page_title' => '🐕 Dog Help Scheduler',
-            'csrf_token_intention' => 'authenticate',
-            'target_path' => $this->generateUrl('admin'),
-            'username_label' => 'Identifiant',
-            'password_label' => 'Mot de passe',
-            'sign_in_label' => 'Connexion',
         ]);
     }
 

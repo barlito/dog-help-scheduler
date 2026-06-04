@@ -17,14 +17,16 @@ use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationExc
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
 use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPassport;
+use Symfony\Component\Security\Http\EntryPoint\AuthenticationEntryPointInterface;
 use Symfony\Component\Security\Http\SecurityRequestAttributes;
 use Symfony\Component\Security\Http\Util\TargetPathTrait;
 
 /**
  * Logs the user in via Discord OAuth, restricting access to a single whitelisted
- * Discord account which maps to the in-memory "admin" user (ROLE_ADMIN).
+ * Discord account which maps to the in-memory "admin" user (ROLE_ADMIN). Also the
+ * firewall entry point: unauthenticated users land on the login page.
  */
-final class DiscordAuthenticator extends OAuth2Authenticator
+final class DiscordAuthenticator extends OAuth2Authenticator implements AuthenticationEntryPointInterface
 {
     use TargetPathTrait;
 
@@ -68,6 +70,12 @@ final class DiscordAuthenticator extends OAuth2Authenticator
     {
         $request->getSession()->set(SecurityRequestAttributes::AUTHENTICATION_ERROR, $exception);
 
+        return new RedirectResponse($this->urlGenerator->generate('login'));
+    }
+
+    public function start(Request $request, ?AuthenticationException $authException = null): Response
+    {
+        // Send unauthenticated users to the login page (which only offers Discord).
         return new RedirectResponse($this->urlGenerator->generate('login'));
     }
 }

@@ -19,4 +19,15 @@ final class DiscordControllerTest extends WebTestCase
             $client->getResponse()->headers->get('Location') ?? '',
         );
     }
+
+    public function testLoginPageOffersDiscordOnly(): void
+    {
+        $client = static::createClient();
+        $crawler = $client->request('GET', '/login');
+
+        self::assertResponseIsSuccessful();
+        // The Discord button is present and the password field is gone.
+        $this->assertGreaterThan(0, $crawler->filter('a[href$="/connect/discord"]')->count());
+        $this->assertSame(0, $crawler->filter('input[type="password"]')->count());
+    }
 }
