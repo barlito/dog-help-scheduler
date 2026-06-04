@@ -1,0 +1,80 @@
+name: Deploy Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag de release à déployer (ex: v1.0.0)"
+        required: true
+        type: string
+      re-deploy:
+        description: "Full re-deploy (undeploy + redeploy) au lieu d'un rolling update"
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      DOCKER_HOST: ssh://${{ vars.SERVER_USERNAME }}@${{ vars.SERVER_HOST }}:${{ vars.SERVER_PORT }}
+      TAG: ${{ inputs.tag }}
+      # Substitués dans docker-compose-prod.yml au moment du stack deploy
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      APP_SECRET: ${{ secrets.APP_SECRET }}
+      NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+      DISCORD_CLIENT_ID: ${{ secrets.DISCORD_CLIENT_ID }}
+      DISCORD_CLIENT_SECRET: ${{ secrets.DISCORD_CLIENT_SECRET }}
+      DISCORD_ALLOWED_USER_ID: ${{ secrets.DISCORD_ALLOWED_USER_ID }}
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: 'true'
+
+      - name: Setup castor
+        uses: castor-php/setup-castor@v1.0.0
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p ${{ vars.SERVER_PORT }} ${{ vars.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_READ_WRITE_DELETE_ACCESS_TOKEN }}
+
+      - name: Re-Deploy Stack
+        if: inputs.re-deploy
+        run: |
+          # `|| true` pour tolérer "rien à supprimer" sur le tout premier deploy
+          # (docker stack rm exit non-zero si le stack n'existe pas encore).
+          make undeploy || true
+          make deploy.prod
+
+      - name: Drain & stop worker
+        if: ${{ ! inputs.re-deploy }}
+        run: docker service scale doghelp_worker=0
+
+      - name: Update main service + migrate
+        if: ${{ ! inputs.re-deploy }}
+        run: |
+          make db.backup
+          make docker.service.update args="--image barlito/doghelp:$TAG doghelp_php"
+          castor barlito:castor:wait-php-container
+          make doctrine.migrate
+
+      - name: Update & restart worker
+        if: ${{ ! inputs.re-deploy }}
+        run: |
+          make docker.service.update args="--image barlito/doghelp-worker:$TAG doghelp_worker"
+          docker service scale doghelp_worker=1
+
+      - name: Smoke test
+        if: ${{ ! inputs.re-deploy }}
+        run: make smoke.test
