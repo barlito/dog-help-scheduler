@@ -74,6 +74,11 @@ class NotificationType implements \Stringable
     #[Assert\PositiveOrZero]
     private int $minGapMinutes = 60;
 
+    /** When the user taps "Reporter", re-send after this many minutes. */
+    #[ORM\Column]
+    #[Assert\Positive]
+    private int $postponeMinutes = 10;
+
     /** When false, the scheduler skips this type entirely. */
     #[ORM\Column]
     private bool $enabled = true;
@@ -193,6 +198,18 @@ class NotificationType implements \Stringable
     public function setMinGapMinutes(int $minGapMinutes): self
     {
         $this->minGapMinutes = $minGapMinutes;
+
+        return $this;
+    }
+
+    public function getPostponeMinutes(): int
+    {
+        return $this->postponeMinutes;
+    }
+
+    public function setPostponeMinutes(int $postponeMinutes): self
+    {
+        $this->postponeMinutes = $postponeMinutes;
 
         return $this;
     }

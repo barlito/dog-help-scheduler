@@ -55,5 +55,8 @@ final class NotificationTypeCrudController extends AbstractCrudController
         ;
         yield IntegerField::new('perDay', 'Nb / jour');
         yield IntegerField::new('minGapMinutes', 'Écart min (min)')->hideOnIndex();
+        yield IntegerField::new('postponeMinutes', 'Report (min)')->hideOnIndex()
+            ->setHelp('Délai de renvoi quand tu tapes "Reporter".')
+        ;
     }
 }
