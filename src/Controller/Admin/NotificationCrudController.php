@@ -82,12 +82,15 @@ final class NotificationCrudController extends AbstractCrudController
     #[AdminRoute('/cancel-batch')]
     public function cancelBatch(BatchActionDto $batchActionDto, EntityManagerInterface $em, AdminUrlGenerator $adminUrlGenerator): Response
     {
-        $repository = $em->getRepository(Notification::class);
+        // Fetch the whole selection in a single query (one IN (...)) rather than one
+        // SELECT per id.
+        $notifications = $em->getRepository(Notification::class)
+            ->findBy(['id' => $batchActionDto->getEntityIds()])
+        ;
 
         $cancelled = 0;
-        foreach ($batchActionDto->getEntityIds() as $id) {
-            $notification = $repository->find($id);
-            if ($notification instanceof Notification && $notification->cancel()) {
+        foreach ($notifications as $notification) {
+            if ($notification->cancel()) {
                 ++$cancelled;
             }
         }
