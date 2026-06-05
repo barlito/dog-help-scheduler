@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\MessageHandler;
 
+use App\Enum\NotificationStatus;
 use App\Message\SendNotificationMessage;
 use App\Repository\NotificationRepository;
 use App\Service\NtfyMessageFactory;
@@ -30,6 +31,13 @@ final class SendNotificationMessageHandler
         $notification = $this->notifications->find(Uuid::fromString($message->notificationId));
         if (null === $notification) {
             $this->logger->warning('SendNotification skipped: #{id} no longer exists.', ['id' => $message->notificationId]);
+
+            return;
+        }
+
+        // Cancelled from the backoffice (e.g. a day away from home): never deliver it.
+        if (NotificationStatus::CANCELLED === $notification->getStatus()) {
+            $this->logger->info('SendNotification skipped: #{id} was cancelled.', ['id' => $message->notificationId]);
 
             return;
         }

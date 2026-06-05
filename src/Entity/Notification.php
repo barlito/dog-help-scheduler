@@ -117,6 +117,27 @@ class Notification
         $this->status = NotificationStatus::FAILED;
     }
 
+    /** A notification can be cancelled only while it is still planned (not yet sent). */
+    public function isCancellable(): bool
+    {
+        return NotificationStatus::PLANNED === $this->status;
+    }
+
+    /**
+     * Cancels a still-planned notification so the worker skips it when its slot comes.
+     * Returns false if it can no longer be cancelled (already sent/answered/failed).
+     */
+    public function cancel(): bool
+    {
+        if (!$this->isCancellable()) {
+            return false;
+        }
+
+        $this->status = NotificationStatus::CANCELLED;
+
+        return true;
+    }
+
     /** Records the user's quick reply. Returns false if a reply was already recorded. */
     public function recordResponse(NotificationStatus $status): bool
     {

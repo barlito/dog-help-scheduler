@@ -18,6 +18,8 @@ enum NotificationStatus: string
     case NOT_DONE = 'not_done';
     /** Sending to ntfy failed. */
     case FAILED = 'failed';
+    /** Cancelled from the backoffice before it was sent (e.g. day away from home). */
+    case CANCELLED = 'cancelled';
 
     public function label(): string
     {
@@ -28,6 +30,7 @@ enum NotificationStatus: string
             self::POSTPONED => 'Reportée',
             self::NOT_DONE => 'Non effectuée',
             self::FAILED => 'Échec',
+            self::CANCELLED => 'Annulée',
         };
     }
 
@@ -41,6 +44,7 @@ enum NotificationStatus: string
             self::POSTPONED => 'warning',
             self::NOT_DONE => 'danger',
             self::FAILED => 'dark',
+            self::CANCELLED => 'light',
         };
     }
 
