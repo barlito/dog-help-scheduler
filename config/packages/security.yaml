@@ -18,10 +18,16 @@ security:
             provider: admin_provider
             custom_authenticators:
                 - App\Security\DiscordAuthenticator
-            # Discord OAuth is the only login. Unauthenticated users are sent to the
-            # login page (which only offers the Discord button) by the authenticator's
-            # entry point.
+            # Discord OAuth is the only login. The authenticator's entry point kicks
+            # off a silent Discord login (prompt=none) so an already-logged-in Discord
+            # user is signed in seamlessly, falling back to the login page on error.
             entry_point: App\Security\DiscordAuthenticator
+            # Keep the session alive across restarts: always issue a remember-me cookie
+            # (no checkbox — the single whitelisted account always opts in).
+            remember_me:
+                secret: '%kernel.secret%'
+                lifetime: 2592000 # 30 days
+                always_remember_me: true
             logout:
                 path: logout
                 target: login

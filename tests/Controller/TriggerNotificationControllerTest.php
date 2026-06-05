@@ -27,7 +27,8 @@ final class TriggerNotificationControllerTest extends WebTestCase
         $client = static::createClient();
         $client->request('POST', '/admin/trigger-notification');
 
+        // Seamless entry point: unauthenticated access starts the Discord login.
         self::assertResponseRedirects();
-        $this->assertStringContainsString('/login', $client->getResponse()->headers->get('Location') ?? '');
+        $this->assertStringContainsString('/connect/discord', $client->getResponse()->headers->get('Location') ?? '');
     }
 }
