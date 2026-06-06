@@ -35,13 +35,15 @@ final class NotificationResponseControllerTest extends WebTestCase
         ;
     }
 
-    private function createSentNotification(): Notification
+    private function createSentNotification(int $jitterMaxMinutes = 0): Notification
     {
         $type = (new NotificationType())
             ->setKey('resp_' . uniqid())
             ->setLabel('Test')
             ->setTitle('Test')
             ->setMessage('Test message')
+            // Jitter off by default so the timing assertions stay deterministic.
+            ->setPostponeJitterMaxMinutes($jitterMaxMinutes)
         ;
         $this->em->persist($type);
 
@@ -125,6 +127,29 @@ final class NotificationResponseControllerTest extends WebTestCase
         );
 
         $this->assertEqualsWithDelta(10 * 60 * 1000, $secondDelay - $firstDelay, 60 * 1000);
+    }
+
+    public function testPostponeAddsARandomJitter(): void
+    {
+        $notification = $this->createSentNotification(jitterMaxMinutes: 5);
+        $id = $notification->getId();
+        $before = new \DateTimeImmutable();
+
+        $this->client->request('POST', \sprintf('/n/%s/%s/postponed', $id, $notification->getResponseToken()));
+
+        self::assertResponseIsSuccessful();
+
+        $this->em->clear();
+        $fresh = $this->em->getRepository(Notification::class)->find($id);
+
+        // 10 min base + a draw between 1 and 5 min: strictly later than the bare
+        // delay, never beyond base + max (margins absorb request time and rounding).
+        $this->assertGreaterThan($before->modify('+10 minutes 30 seconds'), $fresh->getPostponedUntil());
+        $this->assertLessThan($before->modify('+16 minutes'), $fresh->getPostponedUntil());
+
+        $delay = $this->lastDispatchDelay();
+        $this->assertGreaterThan(10 * 60 * 1000, $delay);
+        $this->assertLessThanOrEqual(15 * 60 * 1000, $delay);
     }
 
     /** Delay (ms) of the single message dispatched by the last request. */

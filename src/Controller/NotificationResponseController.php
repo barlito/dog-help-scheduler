@@ -81,11 +81,14 @@ final class NotificationResponseController
     /**
      * The type's postpone delay from now, pushed back behind the latest postponed
      * notification still waiting to repop (plus the same delay as spacing), so that
-     * chained postpones come back one by one instead of together.
+     * chained postpones come back one by one instead of together. A random jitter
+     * (1 to the type's max, when configured) is then added so the repop never lands
+     * exactly N minutes later.
      */
     private function staggeredPostponeTime(Notification $notification, \DateTimeImmutable $now): \DateTimeImmutable
     {
-        $minutes = $notification->getType()->getPostponeMinutes();
+        $type = $notification->getType();
+        $minutes = $type->getPostponeMinutes();
         $until = $now->modify(\sprintf('+%d minutes', $minutes));
 
         $lastPending = $this->notifications->findLatestPendingPostponedUntil($now);
@@ -94,6 +97,11 @@ final class NotificationResponseController
             if ($chained > $until) {
                 $until = $chained;
             }
+        }
+
+        $jitterMax = $type->getPostponeJitterMaxMinutes();
+        if ($jitterMax > 0) {
+            $until = $until->modify(\sprintf('+%d minutes', random_int(1, $jitterMax)));
         }
 
         return $until;
