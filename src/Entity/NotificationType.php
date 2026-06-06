@@ -79,6 +79,11 @@ class NotificationType implements \Stringable
     #[Assert\Positive]
     private int $postponeMinutes = 10;
 
+    /** Random extra delay on top of the postpone: a draw between 1 and this many minutes (0 disables it). */
+    #[ORM\Column]
+    #[Assert\PositiveOrZero]
+    private int $postponeJitterMaxMinutes = 5;
+
     /** When false, the scheduler skips this type entirely. */
     #[ORM\Column]
     private bool $enabled = true;
@@ -210,6 +215,18 @@ class NotificationType implements \Stringable
     public function setPostponeMinutes(int $postponeMinutes): self
     {
         $this->postponeMinutes = $postponeMinutes;
+
+        return $this;
+    }
+
+    public function getPostponeJitterMaxMinutes(): int
+    {
+        return $this->postponeJitterMaxMinutes;
+    }
+
+    public function setPostponeJitterMaxMinutes(int $postponeJitterMaxMinutes): self
+    {
+        $this->postponeJitterMaxMinutes = $postponeJitterMaxMinutes;
 
         return $this;
     }

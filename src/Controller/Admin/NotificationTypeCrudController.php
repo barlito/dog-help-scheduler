@@ -58,5 +58,8 @@ final class NotificationTypeCrudController extends AbstractCrudController
         yield IntegerField::new('postponeMinutes', 'Report (min)')->hideOnIndex()
             ->setHelp('Délai de renvoi quand tu tapes "Reporter".')
         ;
+        yield IntegerField::new('postponeJitterMaxMinutes', 'Aléa report max (min)')->hideOnIndex()
+            ->setHelp('Aléa ajouté au report : tirage entre 1 et N min (0 = désactivé).')
+        ;
     }
 }
