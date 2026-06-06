@@ -38,6 +38,10 @@ class Notification
     #[ORM\Column(length: 16, enumType: NotificationStatus::class)]
     private NotificationStatus $status = NotificationStatus::PLANNED;
 
+    /** When a postponed notification will fire again (used to stagger bursts of postpones). */
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $postponedUntil = null;
+
     /** Random per-notification secret used to authorise the ntfy quick-reply callback. */
     #[ORM\Column(length: 36, unique: true)]
     private string $responseToken;
@@ -94,6 +98,17 @@ class Notification
     public function getStatusLabel(): string
     {
         return $this->status->label();
+    }
+
+    public function getPostponedUntil(): ?\DateTimeImmutable
+    {
+        return $this->postponedUntil;
+    }
+
+    /** Remembers when this postponed notification is scheduled to fire again. */
+    public function setPostponedUntil(\DateTimeImmutable $postponedUntil): void
+    {
+        $this->postponedUntil = $postponedUntil;
     }
 
     public function getResponseToken(): string

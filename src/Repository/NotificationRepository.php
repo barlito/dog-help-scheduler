@@ -68,6 +68,25 @@ class NotificationRepository extends ServiceEntityRepository
     }
 
     /**
+     * Latest re-fire time among postponed notifications still waiting to pop again.
+     * Used to stagger a burst of postpones instead of letting them all repop at once.
+     */
+    public function findLatestPendingPostponedUntil(\DateTimeImmutable $now): ?\DateTimeImmutable
+    {
+        $value = $this->createQueryBuilder('n')
+            ->select('MAX(n.postponedUntil)')
+            ->andWhere('n.status = :status')
+            ->andWhere('n.postponedUntil > :now')
+            ->setParameter('status', NotificationStatus::POSTPONED)
+            ->setParameter('now', $now)
+            ->getQuery()
+            ->getSingleScalarResult()
+        ;
+
+        return null === $value ? null : new \DateTimeImmutable($value);
+    }
+
+    /**
      * @return Notification[]
      */
     public function findForDay(\DateTimeImmutable $day): array

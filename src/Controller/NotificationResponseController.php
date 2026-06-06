@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Entity\Notification;
 use App\Enum\NotificationStatus;
 use App\Message\SendNotificationMessage;
+use App\Repository\NotificationRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -22,6 +23,7 @@ final class NotificationResponseController
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly MessageBusInterface $bus,
+        private readonly NotificationRepository $notifications,
     ) {
     }
 
@@ -51,21 +53,50 @@ final class NotificationResponseController
             return $this->text(\sprintf('Déjà répondu (%s). 🐾', $notification->getStatus()->label()));
         }
 
+        // "Reporter" re-sends the same notification later (status goes back to SENT when
+        // it fires). The re-fire time is staggered so that a burst of postpones — e.g.
+        // catching up on a late morning — does not repop all at once. Other answers are final.
+        $now = new \DateTimeImmutable();
+        $postponedUntil = null;
+        if (NotificationStatus::POSTPONED === $status) {
+            $postponedUntil = $this->staggeredPostponeTime($notification, $now);
+            $notification->setPostponedUntil($postponedUntil);
+        }
+
         $this->em->flush();
 
-        // "Reporter" re-sends the same notification after the type's postpone delay
-        // (status goes back to SENT when it fires). Other answers are final.
-        if (NotificationStatus::POSTPONED === $status) {
-            $minutes = $notification->getType()->getPostponeMinutes();
+        if (null !== $postponedUntil) {
+            $delaySeconds = $postponedUntil->getTimestamp() - $now->getTimestamp();
             $this->bus->dispatch(
                 new SendNotificationMessage((string) $notification->getId()),
-                [new DelayStamp($minutes * 60 * 1000)],
+                [new DelayStamp($delaySeconds * 1000)],
             );
 
-            return $this->text(\sprintf('Reporté de %d min. 🐾', $minutes));
+            return $this->text(\sprintf('Reporté de %d min. 🐾', intdiv($delaySeconds, 60)));
         }
 
         return $this->text(\sprintf('Réponse enregistrée : %s. Merci ! 🐾', $status->label()));
+    }
+
+    /**
+     * The type's postpone delay from now, pushed back behind the latest postponed
+     * notification still waiting to repop (plus the same delay as spacing), so that
+     * chained postpones come back one by one instead of together.
+     */
+    private function staggeredPostponeTime(Notification $notification, \DateTimeImmutable $now): \DateTimeImmutable
+    {
+        $minutes = $notification->getType()->getPostponeMinutes();
+        $until = $now->modify(\sprintf('+%d minutes', $minutes));
+
+        $lastPending = $this->notifications->findLatestPendingPostponedUntil($now);
+        if (null !== $lastPending) {
+            $chained = $lastPending->modify(\sprintf('+%d minutes', $minutes));
+            if ($chained > $until) {
+                $until = $chained;
+            }
+        }
+
+        return $until;
     }
 
     private function text(string $body): Response
