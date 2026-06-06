@@ -68,6 +68,8 @@ final class DashboardController extends AbstractDashboardController
             'anchor' => $anchor,
             'prevAnchor' => $range['prev'],
             'nextAnchor' => $range['next'],
+            // Whether the displayed range contains today (drives the "Aujourd'hui" shortcut).
+            'isCurrentPeriod' => null === $range['from'] || ($today >= $range['from'] && $today < $range['to']),
         ]);
     }
 

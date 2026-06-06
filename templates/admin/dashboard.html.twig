@@ -3,31 +3,56 @@
 {% block content_title %}Tableau de bord{% endblock %}
 
 {% block main %}
-    <form method="post" action="{{ path('admin_trigger_notification') }}" class="mb-4">
-        <input type="hidden" name="_token" value="{{ csrf_token('trigger_notification') }}">
-        <button type="submit" class="btn btn-primary">
-            <i class="fa fa-bell"></i> Déclencher une notif maintenant
-        </button>
-    </form>
+    <div class="card mb-4">
+        <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3 py-2">
+            <form method="post" action="{{ path('admin_trigger_notification') }}" class="m-0">
+                <input type="hidden" name="_token" value="{{ csrf_token('trigger_notification') }}">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fa fa-bell me-1"></i> Déclencher une notif
+                </button>
+            </form>
 
-    <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
-        <div class="btn-group" role="group" aria-label="Période des statistiques">
-            <a href="{{ path('admin', {period: 'week', anchor: anchor|date('Y-m-d')}) }}"
-               class="btn btn-sm btn-outline-primary{{ period == 'week' ? ' active' }}">Semaine</a>
-            <a href="{{ path('admin', {period: 'month', anchor: anchor|date('Y-m-d')}) }}"
-               class="btn btn-sm btn-outline-primary{{ period == 'month' ? ' active' }}">Mois</a>
-            <a href="{{ path('admin', {period: 'all'}) }}"
-               class="btn btn-sm btn-outline-primary{{ period == 'all' ? ' active' }}">Global</a>
-        </div>
-        {% if period != 'all' %}
-            <div class="btn-group" role="group" aria-label="Navigation dans les périodes">
-                <a href="{{ path('admin', {period: period, anchor: prevAnchor|date('Y-m-d')}) }}"
-                   class="btn btn-sm btn-outline-secondary" title="Période précédente">&lsaquo;</a>
-                <a href="{{ path('admin', {period: period, anchor: nextAnchor|date('Y-m-d')}) }}"
-                   class="btn btn-sm btn-outline-secondary" title="Période suivante">&rsaquo;</a>
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <div class="d-flex align-items-center" aria-label="Navigation dans les périodes">
+                    {% if period != 'all' %}
+                        <a href="{{ path('admin', {period: period, anchor: prevAnchor|date('Y-m-d')}) }}"
+                           class="btn btn-sm btn-link text-secondary px-2" title="Période précédente">
+                            <i class="fa fa-chevron-left"></i>
+                        </a>
+                    {% endif %}
+                    <span class="fw-semibold text-nowrap px-1">
+                        <i class="fa fa-calendar-days text-secondary me-1"></i>{{ rangeLabel }}
+                    </span>
+                    {% if period != 'all' %}
+                        {% if nextAnchor <= today %}
+                            <a href="{{ path('admin', {period: period, anchor: nextAnchor|date('Y-m-d')}) }}"
+                               class="btn btn-sm btn-link text-secondary px-2" title="Période suivante">
+                                <i class="fa fa-chevron-right"></i>
+                            </a>
+                        {% else %}
+                            <span class="btn btn-sm btn-link text-secondary px-2 disabled opacity-25">
+                                <i class="fa fa-chevron-right"></i>
+                            </span>
+                        {% endif %}
+                        {% if not isCurrentPeriod %}
+                            <a href="{{ path('admin', {period: period}) }}"
+                               class="btn btn-sm btn-outline-secondary ms-2" title="Revenir à la période en cours">
+                                Aujourd'hui
+                            </a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+
+                <ul class="nav nav-pills gap-1" aria-label="Période des statistiques">
+                    {% for p, label in {week: 'Semaine', month: 'Mois', all: 'Global'} %}
+                        <li class="nav-item">
+                            <a class="nav-link py-1 px-3{{ period == p ? ' active' }}"
+                               href="{{ path('admin', {period: p, anchor: anchor|date('Y-m-d')}) }}">{{ label }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
             </div>
-        {% endif %}
-        <strong>{{ rangeLabel }}</strong>
+        </div>
     </div>
 
     <div class="row">
