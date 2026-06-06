@@ -10,6 +10,26 @@
         </button>
     </form>
 
+    <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+        <div class="btn-group" role="group" aria-label="Période des statistiques">
+            <a href="{{ path('admin', {period: 'week', anchor: anchor|date('Y-m-d')}) }}"
+               class="btn btn-sm btn-outline-primary{{ period == 'week' ? ' active' }}">Semaine</a>
+            <a href="{{ path('admin', {period: 'month', anchor: anchor|date('Y-m-d')}) }}"
+               class="btn btn-sm btn-outline-primary{{ period == 'month' ? ' active' }}">Mois</a>
+            <a href="{{ path('admin', {period: 'all'}) }}"
+               class="btn btn-sm btn-outline-primary{{ period == 'all' ? ' active' }}">Global</a>
+        </div>
+        {% if period != 'all' %}
+            <div class="btn-group" role="group" aria-label="Navigation dans les périodes">
+                <a href="{{ path('admin', {period: period, anchor: prevAnchor|date('Y-m-d')}) }}"
+                   class="btn btn-sm btn-outline-secondary" title="Période précédente">&lsaquo;</a>
+                <a href="{{ path('admin', {period: period, anchor: nextAnchor|date('Y-m-d')}) }}"
+                   class="btn btn-sm btn-outline-secondary" title="Période suivante">&rsaquo;</a>
+            </div>
+        {% endif %}
+        <strong>{{ rangeLabel }}</strong>
+    </div>
+
     <div class="row">
         <div class="col-md-3 col-6 mb-3">
             <div class="card text-bg-success h-100">
