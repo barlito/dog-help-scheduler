@@ -121,10 +121,26 @@ final class NotificationCrudController extends AbstractCrudController
     {
         yield IdField::new('id')->onlyOnDetail();
         yield TextField::new('typeLabel', 'Type');
-        yield DateTimeField::new('scheduledAt', 'Prévue à');
-        yield DateTimeField::new('sentAt', 'Envoyée à');
-        yield TextField::new('statusLabel', 'Statut');
-        yield DateTimeField::new('respondedAt', 'Répondue à');
-        yield DateTimeField::new('createdAt', 'Créée à')->onlyOnDetail();
+        yield $this->dateTimeField('scheduledAt', 'Prévue à');
+        yield $this->dateTimeField('sentAt', 'Envoyée à');
+        yield TextField::new('statusLabel', 'Statut')
+            ->renderAsHtml()
+            ->formatValue(static fn (?string $value, Notification $notification): string => \sprintf(
+                '<span class="badge text-bg-%s">%s</span>',
+                $notification->getStatus()->color(),
+                $value,
+            ))
+        ;
+        yield $this->dateTimeField('respondedAt', 'Répondue à');
+        yield $this->dateTimeField('postponedUntil', 'Repop prévu à')
+            ->setHelp('Pour une notification reportée : heure (échelonnée + aléa) à laquelle elle revient.')
+        ;
+        yield $this->dateTimeField('createdAt', 'Créée à')->onlyOnDetail();
+    }
+
+    /** Consistent compact date display ("06/06/2026 09:12") across index and detail. */
+    private function dateTimeField(string $property, string $label): DateTimeField
+    {
+        return DateTimeField::new($property, $label)->setFormat('dd/MM/yyyy HH:mm');
     }
 }
