@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Entity\NotificationType;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ArrayField;
@@ -13,6 +15,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
+use Symfony\Component\Form\Extension\Core\Type\TimeType;
 
 final class NotificationTypeCrudController extends AbstractCrudController
 {
@@ -32,6 +35,12 @@ final class NotificationTypeCrudController extends AbstractCrudController
         ;
     }
 
+    public function configureActions(Actions $actions): Actions
+    {
+        // The detail page is the only place showing every field (id, message, tags…).
+        return $actions->add(Crud::PAGE_INDEX, Action::DETAIL);
+    }
+
     public function configureFields(string $pageName): iterable
     {
         yield IdField::new('id')->onlyOnDetail();
@@ -47,19 +56,31 @@ final class NotificationTypeCrudController extends AbstractCrudController
         yield ArrayField::new('tags', 'Tags ntfy')->hideOnIndex()
             ->setHelp('Emojis/mots-clés ntfy, ex. "dog2", "walking".')
         ;
-        yield TextField::new('windowStart', 'Début fenêtre')
-            ->setFormTypeOption('attr', ['type' => 'time'])
-        ;
-        yield TextField::new('windowEnd', 'Fin fenêtre')
-            ->setFormTypeOption('attr', ['type' => 'time'])
-        ;
+        yield $this->timeField('windowStart', 'Début fenêtre');
+        yield $this->timeField('windowEnd', 'Fin fenêtre');
         yield IntegerField::new('perDay', 'Nb / jour');
-        yield IntegerField::new('minGapMinutes', 'Écart min (min)')->hideOnIndex();
-        yield IntegerField::new('postponeMinutes', 'Report (min)')->hideOnIndex()
+        yield IntegerField::new('minGapMinutes', 'Écart min (min)');
+        yield IntegerField::new('postponeMinutes', 'Report (min)')
             ->setHelp('Délai de renvoi quand tu tapes "Reporter".')
         ;
-        yield IntegerField::new('postponeJitterMaxMinutes', 'Aléa report max (min)')->hideOnIndex()
+        yield IntegerField::new('postponeJitterMaxMinutes', 'Aléa report (min)')
             ->setHelp('Aléa ajouté au report : tirage entre 1 et N min (0 = désactivé).')
+        ;
+    }
+
+    /**
+     * Native browser time picker over the "HH:MM" string properties: Symfony's
+     * TimeType renders an <input type="time"> and converts from/to the string.
+     */
+    private function timeField(string $property, string $label): TextField
+    {
+        return TextField::new($property, $label)
+            ->setFormType(TimeType::class)
+            ->setFormTypeOptions([
+                'widget' => 'single_text',
+                'input' => 'string',
+                'input_format' => 'H:i',
+            ])
         ;
     }
 }
