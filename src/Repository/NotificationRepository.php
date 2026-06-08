@@ -42,18 +42,25 @@ class NotificationRepository extends ServiceEntityRepository
     }
 
     /**
-     * Number of notifications grouped by status.
+     * Number of notifications grouped by status, optionally restricted to a
+     * scheduling period ([from, to[). No bounds = all time.
      *
      * @return array<string, int> keyed by NotificationStatus value
      */
-    public function countByStatus(): array
+    public function countByStatus(?\DateTimeImmutable $from = null, ?\DateTimeImmutable $to = null): array
     {
-        $rows = $this->createQueryBuilder('n')
+        $qb = $this->createQueryBuilder('n')
             ->select('n.status AS status, COUNT(n.id) AS total')
             ->groupBy('n.status')
-            ->getQuery()
-            ->getResult()
         ;
+        if (null !== $from) {
+            $qb->andWhere('n.scheduledAt >= :from')->setParameter('from', $from);
+        }
+        if (null !== $to) {
+            $qb->andWhere('n.scheduledAt < :to')->setParameter('to', $to);
+        }
+
+        $rows = $qb->getQuery()->getResult();
 
         $counts = [];
         foreach (NotificationStatus::cases() as $case) {

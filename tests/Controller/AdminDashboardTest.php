@@ -13,6 +13,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Security\Core\User\UserProviderInterface;
 
 final class AdminDashboardTest extends WebTestCase
@@ -26,6 +27,13 @@ final class AdminDashboardTest extends WebTestCase
         $provider = self::getContainer()->get('security.user.provider.concrete.admin_provider');
         \assert($provider instanceof UserProviderInterface);
         $client->loginUser($provider->loadUserByIdentifier('admin'), 'main');
+
+        // Dashboard counts are global: start each test from an empty notification
+        // table so they stay exact even though the test database persists between runs.
+        self::getContainer()->get(EntityManagerInterface::class)
+            ->createQuery('DELETE FROM ' . Notification::class)
+            ->execute()
+        ;
 
         return $client;
     }
@@ -120,6 +128,44 @@ final class AdminDashboardTest extends WebTestCase
         $this->assertSame('20:00', $fresh->getWindowEnd());
     }
 
+    public function testDashboardStatsDefaultToTheCurrentWeek(): void
+    {
+        $client = $this->createAdminClient();
+        $this->createValidatedNotification(new \DateTimeImmutable('today 10:00'));
+        $this->createValidatedNotification(new \DateTimeImmutable('-60 days'));
+
+        $crawler = $client->request('GET', '/admin');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', 'Semaine du');
+        $this->assertSame('1', $this->deliveredCount($crawler), 'Only this week\'s notification counts by default.');
+    }
+
+    public function testDashboardGlobalPeriodCoversAllTime(): void
+    {
+        $client = $this->createAdminClient();
+        $this->createValidatedNotification(new \DateTimeImmutable('today 10:00'));
+        $this->createValidatedNotification(new \DateTimeImmutable('-60 days'));
+
+        $crawler = $client->request('GET', '/admin?period=all');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', 'Global (depuis le début)');
+        $this->assertSame('2', $this->deliveredCount($crawler));
+    }
+
+    public function testDashboardCanBrowseAGivenMonth(): void
+    {
+        $client = $this->createAdminClient();
+        $this->createValidatedNotification(new \DateTimeImmutable('2026-04-10 10:00'));
+
+        $crawler = $client->request('GET', '/admin?period=month&anchor=2026-04-15');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', 'Avril 2026');
+        $this->assertSame('1', $this->deliveredCount($crawler));
+    }
+
     public function testDashboardRedirectsAnonymousToDiscordLogin(): void
     {
         $client = static::createClient();
@@ -145,6 +191,22 @@ final class AdminDashboardTest extends WebTestCase
         $em->flush();
 
         return $type;
+    }
+
+    private function createValidatedNotification(\DateTimeImmutable $scheduledAt): void
+    {
+        $em = self::getContainer()->get(EntityManagerInterface::class);
+        $notification = new Notification($this->createType(), $scheduledAt);
+        $notification->markSent();
+        $notification->recordResponse(NotificationStatus::VALIDATED);
+        $em->persist($notification);
+        $em->flush();
+    }
+
+    /** Number shown on the dashboard's "Notifications délivrées" card. */
+    private function deliveredCount(Crawler $crawler): string
+    {
+        return trim($crawler->filterXPath('//div[contains(@class, "card-body")][contains(., "Notifications délivrées")]/h2')->text());
     }
 
     private function crudUrl(string $action, string $entityId): string
