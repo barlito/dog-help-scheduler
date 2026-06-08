@@ -6,6 +6,7 @@ namespace App\Entity;
 
 use App\Enum\NotificationStatus;
 use App\Repository\NotificationRepository;
+use Barlito\Utils\Traits\TimestampableTrait;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
@@ -16,6 +17,8 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Index(name: 'idx_notification_status', columns: ['status'])]
 class Notification
 {
+    use TimestampableTrait;
+
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
@@ -46,16 +49,16 @@ class Notification
     #[ORM\Column(length: 36, unique: true)]
     private string $responseToken;
 
-    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
-    private \DateTimeImmutable $createdAt;
-
     public function __construct(NotificationType $type, \DateTimeImmutable $scheduledAt)
     {
         $this->type = $type;
         $this->scheduledAt = $scheduledAt;
         $this->status = NotificationStatus::PLANNED;
         $this->responseToken = Uuid::v4()->toRfc4122();
+        // createdAt/updatedAt come from TimestampableTrait; this entity overrides its
+        // constructor, so initialise them here too (Gedmo also fills them on persist).
         $this->createdAt = new \DateTimeImmutable();
+        $this->updatedAt = new \DateTimeImmutable();
     }
 
     public function getId(): ?Uuid
@@ -114,11 +117,6 @@ class Notification
     public function getResponseToken(): string
     {
         return $this->responseToken;
-    }
-
-    public function getCreatedAt(): \DateTimeImmutable
-    {
-        return $this->createdAt;
     }
 
     public function markSent(): void

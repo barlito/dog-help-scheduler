@@ -97,7 +97,7 @@ final class NotificationTypeCrudController extends AbstractCrudController
         yield IntegerField::new('postponeJitterMaxMinutes', 'Aléa report (min)')
             ->setHelp('Aléa ajouté au report : tirage entre 1 et N min (0 = désactivé).')
         ;
-        yield DateTimeField::new('updatedAt', 'Modifié le')->setFormat('dd/MM/yyyy HH:mm');
+        yield DateTimeField::new('updatedAt', 'Modifié le')->setFormat('dd/MM/yyyy HH:mm')->hideOnForm();
         yield DateTimeField::new('createdAt', 'Créé le')->setFormat('dd/MM/yyyy HH:mm')->onlyOnDetail();
     }
 

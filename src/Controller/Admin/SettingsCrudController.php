@@ -9,6 +9,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
+use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 
 final class SettingsCrudController extends AbstractCrudController
@@ -42,5 +43,6 @@ final class SettingsCrudController extends AbstractCrudController
         yield TextField::new('ntfyTopic', 'Topic ntfy (flux)')
             ->setHelp('Le nom du flux ntfy auquel tu t\'abonnes dans l\'app. Laisser vide pour utiliser la variable d\'environnement NTFY_TOPIC.')
         ;
+        yield DateTimeField::new('updatedAt', 'Modifié le')->setFormat('dd/MM/yyyy HH:mm')->hideOnForm();
     }
 }
