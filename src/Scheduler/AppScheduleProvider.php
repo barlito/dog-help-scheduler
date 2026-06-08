@@ -21,6 +21,9 @@ use Symfony\Contracts\Cache\CacheInterface;
 final class AppScheduleProvider implements ScheduleProviderInterface
 {
     public function __construct(
+        // Postgres-backed pool (see config/packages/cache.yaml): the checkpoint must
+        // outlive the worker's hourly recreate, which a filesystem cache would not.
+        #[Autowire(service: 'cache.scheduler')]
         private readonly CacheInterface $cache,
         #[Autowire('%env(APP_TIMEZONE)%')]
         private readonly string $timezone,
