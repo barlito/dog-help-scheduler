@@ -5,17 +5,22 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Entity\NotificationType;
+use App\Service\DayPlanner;
+use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ArrayField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
+use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\Form\Extension\Core\Type\TimeType;
+use Symfony\Component\HttpFoundation\Response;
 
 final class NotificationTypeCrudController extends AbstractCrudController
 {
@@ -37,8 +42,34 @@ final class NotificationTypeCrudController extends AbstractCrudController
 
     public function configureActions(Actions $actions): Actions
     {
+        // Plan this type's notifications for today on demand (recovery after a missed
+        // schedule, or to test a freshly-tuned window). Idempotent for the day.
+        $planNow = Action::new('planNow', 'Générer aujourd\'hui', 'fa fa-wand-magic-sparkles')
+            ->linkToCrudAction('planNow')
+        ;
+
         // The detail page is the only place showing every field (id, message, tags…).
-        return $actions->add(Crud::PAGE_INDEX, Action::DETAIL);
+        return $actions
+            ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->add(Crud::PAGE_INDEX, $planNow)
+            ->add(Crud::PAGE_DETAIL, $planNow)
+        ;
+    }
+
+    #[AdminRoute('/{entityId:notificationType.id}/plan-now')]
+    public function planNow(NotificationType $notificationType, DayPlanner $planner, AdminUrlGenerator $adminUrlGenerator): Response
+    {
+        $count = $planner->planType($notificationType);
+
+        if ($count > 0) {
+            $this->addFlash('success', \sprintf('%d notification(s) générée(s) pour aujourd\'hui.', $count));
+        } else {
+            $this->addFlash('warning', 'Rien à générer : ce type est déjà planifié pour aujourd\'hui.');
+        }
+
+        return $this->redirect(
+            $adminUrlGenerator->setController(self::class)->setAction(Action::INDEX)->generateUrl(),
+        );
     }
 
     public function configureFields(string $pageName): iterable
@@ -66,6 +97,8 @@ final class NotificationTypeCrudController extends AbstractCrudController
         yield IntegerField::new('postponeJitterMaxMinutes', 'Aléa report (min)')
             ->setHelp('Aléa ajouté au report : tirage entre 1 et N min (0 = désactivé).')
         ;
+        yield DateTimeField::new('updatedAt', 'Modifié le')->setFormat('dd/MM/yyyy HH:mm');
+        yield DateTimeField::new('createdAt', 'Créé le')->setFormat('dd/MM/yyyy HH:mm')->onlyOnDetail();
     }
 
     /**
