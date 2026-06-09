@@ -29,6 +29,8 @@ final class DashboardController extends AbstractDashboardController
         private readonly HubInterface $hub,
         #[Autowire('%env(APP_TIMEZONE)%')]
         private readonly string $timezone,
+        #[Autowire('%env(APP_VERSION)%')]
+        private readonly string $appVersion,
     ) {
     }
 
@@ -116,8 +118,14 @@ final class DashboardController extends AbstractDashboardController
 
     public function configureDashboard(): Dashboard
     {
+        // The title is rendered |raw in the sidebar logo of every admin page, which
+        // makes it the one spot where the deployed version (GitHub tag baked into
+        // the image by release.yaml, "dev" outside prod) is always visible.
         return Dashboard::new()
-            ->setTitle('🐕 Dog Help Scheduler')
+            ->setTitle(\sprintf(
+                '🐕 Dog Help Scheduler <span class="badge text-bg-secondary align-middle">%s</span>',
+                htmlspecialchars($this->appVersion, \ENT_QUOTES),
+            ))
             ->setTranslationDomain('messages')
             ->renderContentMaximized()
         ;

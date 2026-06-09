@@ -167,6 +167,21 @@ final class AdminDashboardTest extends WebTestCase
         $this->assertSame('1', $this->deliveredCount($crawler));
     }
 
+    public function testTheAppVersionIsVisibleOnEveryAdminPage(): void
+    {
+        $client = $this->createAdminClient();
+
+        $crawler = $client->request('GET', '/admin');
+
+        self::assertResponseIsSuccessful();
+        // The version badge lives in the sidebar logo (dashboard title), present on
+        // every admin page. Outside prod the APP_VERSION env defaults to "dev";
+        // in prod it is the GitHub tag baked into the image by release.yaml.
+        $badge = $crawler->filter('.logo-custom .badge');
+        $this->assertGreaterThan(0, $badge->count());
+        $this->assertSame('dev', trim($badge->first()->text()));
+    }
+
     public function testAdminPagesEmbedTheLiveRefreshScript(): void
     {
         $client = $this->createAdminClient();
