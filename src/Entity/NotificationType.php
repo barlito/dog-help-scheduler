@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Repository\NotificationTypeRepository;
+use Barlito\Utils\Traits\TimestampableTrait;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
@@ -19,6 +20,8 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 #[ORM\Entity(repositoryClass: NotificationTypeRepository::class)]
 class NotificationType implements \Stringable
 {
+    use TimestampableTrait;
+
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]

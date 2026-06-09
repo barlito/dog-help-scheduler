@@ -136,6 +136,7 @@ final class NotificationCrudController extends AbstractCrudController
             ->setHelp('Pour une notification reportée : heure (échelonnée + aléa) à laquelle elle revient.')
         ;
         yield $this->dateTimeField('createdAt', 'Créée à')->onlyOnDetail();
+        yield $this->dateTimeField('updatedAt', 'Modifiée à')->onlyOnDetail();
     }
 
     /** Consistent compact date display ("06/06/2026 09:12") across index and detail. */

@@ -15,5 +15,12 @@ framework:
         #app: cache.adapter.apcu
 
         # Namespaced pools use the above "app" backend by default
-        #pools:
-            #my.dedicated.cache: null
+        pools:
+            # The Scheduler's stateful checkpoint MUST survive worker restarts and
+            # redeploys. The worker runs on an ephemeral filesystem (no volume) and is
+            # recreated every hour (--time-limit), so the default filesystem cache would
+            # lose the checkpoint and a missed 00:05 run could never be caught up.
+            # Store it in Postgres instead (table auto-created by the DBAL adapter).
+            cache.scheduler:
+                adapter: cache.adapter.doctrine_dbal
+                provider: 'doctrine.dbal.default_connection'
