@@ -21,6 +21,16 @@
 	root * /app/public
 	encode zstd br gzip
 
+	# Mercure hub (module embarqué dans le binaire FrankenPHP — pas de service dédié).
+	# L'app publie sur /.well-known/mercure avec un JWT signé par MERCURE_JWT_SECRET ;
+	# le navigateur s'y abonne en SSE sans JWT (anonymous : updates publiques only).
+	mercure {
+		transport_url {$MERCURE_TRANSPORT_URL:bolt:///data/mercure.db}
+		publisher_jwt {env.MERCURE_PUBLISHER_JWT_KEY}
+		subscriber_jwt {env.MERCURE_SUBSCRIBER_JWT_KEY}
+		anonymous
+	}
+
 	vulcain
 
 	{$CADDY_SERVER_EXTRA_DIRECTIVES}

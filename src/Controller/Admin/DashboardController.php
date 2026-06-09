@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Enum\NotificationStatus;
+use App\EventListener\NotificationChangeBroadcaster;
 use App\Repository\NotificationRepository;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
@@ -14,6 +16,7 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Mercure\HubInterface;
 
 #[AdminDashboard(routePath: '/admin', routeName: 'admin')]
 final class DashboardController extends AbstractDashboardController
@@ -23,6 +26,7 @@ final class DashboardController extends AbstractDashboardController
     public function __construct(
         private readonly NotificationRepository $notifications,
         private readonly RequestStack $requestStack,
+        private readonly HubInterface $hub,
         #[Autowire('%env(APP_TIMEZONE)%')]
         private readonly string $timezone,
     ) {
@@ -117,6 +121,20 @@ final class DashboardController extends AbstractDashboardController
             ->setTranslationDomain('messages')
             ->renderContentMaximized()
         ;
+    }
+
+    /**
+     * Loaded on every admin page: subscribes to the Mercure hub (SSE) and reloads
+     * the page when a notification changes — phone quick-reply, worker send, day
+     * planning. The hub URL/topic are handed to the script via data attributes.
+     */
+    public function configureAssets(): Assets
+    {
+        return Assets::new()->addHtmlContentToBody(\sprintf(
+            '<script src="/js/admin-live-refresh.js" defer data-hub="%s" data-topic="%s"></script>',
+            htmlspecialchars($this->hub->getPublicUrl(), \ENT_QUOTES),
+            NotificationChangeBroadcaster::TOPIC,
+        ));
     }
 
     public function configureMenuItems(): iterable

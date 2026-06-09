@@ -8,6 +8,7 @@ use App\Controller\Admin\NotificationTypeCrudController;
 use App\Entity\Notification;
 use App\Entity\NotificationType;
 use App\Enum\NotificationStatus;
+use App\EventListener\NotificationChangeBroadcaster;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
@@ -164,6 +165,20 @@ final class AdminDashboardTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('body', 'Avril 2026');
         $this->assertSame('1', $this->deliveredCount($crawler));
+    }
+
+    public function testAdminPagesEmbedTheLiveRefreshScript(): void
+    {
+        $client = $this->createAdminClient();
+
+        $crawler = $client->request('GET', '/admin');
+
+        // Injected by DashboardController::configureAssets() on every admin page:
+        // subscribes to the Mercure hub and reloads when a notification changes.
+        $script = $crawler->filter('script[src="/js/admin-live-refresh.js"]');
+        $this->assertCount(1, $script);
+        $this->assertStringEndsWith('/.well-known/mercure', $script->attr('data-hub'));
+        $this->assertSame(NotificationChangeBroadcaster::TOPIC, $script->attr('data-topic'));
     }
 
     public function testDashboardRedirectsAnonymousToDiscordLogin(): void
