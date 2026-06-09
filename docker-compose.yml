@@ -10,6 +10,10 @@ services:
                 GROUP_ID: ${GROUP_ID:-1000}
         environment:
             SERVER_NAME: ":80"
+            # Clés du hub Mercure embarqué dans FrankenPHP (cf. Caddyfile). Doivent
+            # matcher MERCURE_JWT_SECRET côté Symfony (.env).
+            MERCURE_PUBLISHER_JWT_KEY: "!ChangeThisMercureHubJWTSecretKey!"
+            MERCURE_SUBSCRIBER_JWT_KEY: "!ChangeThisMercureHubJWTSecretKey!"
         volumes:
             - ./:/app
             - ./.docker/franken/Caddyfile:/etc/caddy/Caddyfile

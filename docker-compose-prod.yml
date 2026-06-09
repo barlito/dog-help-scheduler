@@ -18,6 +18,13 @@ services:
             DISCORD_CLIENT_ID: "${DISCORD_CLIENT_ID}"
             DISCORD_CLIENT_SECRET: "${DISCORD_CLIENT_SECRET}"
             DISCORD_ALLOWED_USER_ID: "${DISCORD_ALLOWED_USER_ID}"
+            # Hub Mercure embarqué dans FrankenPHP (Caddyfile) : clés côté hub +
+            # secret côté Symfony (publisher), même valeur partout.
+            MERCURE_PUBLISHER_JWT_KEY: "${MERCURE_JWT_SECRET}"
+            MERCURE_SUBSCRIBER_JWT_KEY: "${MERCURE_JWT_SECRET}"
+            MERCURE_JWT_SECRET: "${MERCURE_JWT_SECRET}"
+            MERCURE_URL: "http://php/.well-known/mercure"
+            MERCURE_PUBLIC_URL: "https://doghelp.barlito.fr/.well-known/mercure"
         deploy:
             replicas: 1
             update_config:
@@ -63,6 +70,11 @@ services:
             NTFY_SERVER: "https://ntfy.sh"
             NTFY_TOPIC: "${NTFY_TOPIC}"
             NTFY_ICON_URL: "https://doghelp.barlito.fr/icons/dog.webp"
+            # Le worker publie les updates Mercure (statut SENT, day planning) vers le
+            # hub hébergé par le service php.
+            MERCURE_JWT_SECRET: "${MERCURE_JWT_SECRET}"
+            MERCURE_URL: "http://php/.well-known/mercure"
+            MERCURE_PUBLIC_URL: "https://doghelp.barlito.fr/.well-known/mercure"
         stop_grace_period: 60s
         deploy:
             replicas: 1
