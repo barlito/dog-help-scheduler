@@ -51,6 +51,10 @@ final class SendNotificationMessageHandler
             $this->publisher->publish($this->messageFactory->forNotification($notification));
             $notification->markSent();
             $this->em->flush();
+            $this->logger->info('Notification #{id} ({type}) sent to ntfy.', [
+                'id' => $message->notificationId,
+                'type' => $notification->getType()->getKey(),
+            ]);
         } catch (\Throwable $e) {
             $notification->markFailed();
             $this->em->flush();
