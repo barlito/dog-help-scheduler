@@ -9,6 +9,7 @@ use App\Enum\NotificationStatus;
 use App\Message\SendNotificationMessage;
 use App\Repository\NotificationRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
@@ -24,6 +25,7 @@ final class NotificationResponseController
         private readonly EntityManagerInterface $em,
         private readonly MessageBusInterface $bus,
         private readonly NotificationRepository $notifications,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -36,6 +38,10 @@ final class NotificationResponseController
     public function __invoke(Notification $notification, string $token, string $action): Response
     {
         if (!hash_equals($notification->getResponseToken(), $token)) {
+            $this->logger->warning('Notification response rejected: bad token for #{id}.', [
+                'id' => (string) $notification->getId(),
+            ]);
+
             return new Response('Lien invalide.', Response::HTTP_NOT_FOUND);
         }
 
@@ -64,6 +70,11 @@ final class NotificationResponseController
         }
 
         $this->em->flush();
+
+        $this->logger->info('Notification #{id} answered: {action}.', [
+            'id' => (string) $notification->getId(),
+            'action' => $status->value,
+        ]);
 
         if (null !== $postponedUntil) {
             $delaySeconds = $postponedUntil->getTimestamp() - $now->getTimestamp();

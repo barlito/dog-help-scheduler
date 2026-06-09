@@ -9,6 +9,7 @@ use App\Repository\NotificationTypeRepository;
 use App\Service\NtfyMessageFactory;
 use App\Service\NtfyPublisher;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,6 +26,7 @@ final class TriggerNotificationController extends AbstractController
         private readonly NtfyMessageFactory $messageFactory,
         private readonly NtfyPublisher $publisher,
         private readonly EntityManagerInterface $em,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -56,6 +58,10 @@ final class TriggerNotificationController extends AbstractController
         } catch (\Throwable $e) {
             $notification->markFailed();
             $this->em->flush();
+            $this->logger->error('Manual trigger failed to publish notification #{id}: {error}', [
+                'id' => (string) $notification->getId(),
+                'error' => $e->getMessage(),
+            ]);
             $this->addFlash('danger', 'Échec de l\'envoi à ntfy : ' . $e->getMessage());
         }
 
