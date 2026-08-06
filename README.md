@@ -1,341 +1,116 @@
-# barlito/php-starter
+# dog-help-scheduler
 
-[![Starter workflow](https://github.com/barlito/php-starter/actions/workflows/symfony_starter.yaml/badge.svg?branch=master)](https://github.com/barlito/php-starter/actions/workflows/symfony_starter.yaml)
+[![CI](https://github.com/barlito/dog-help-scheduler/actions/workflows/entrypoint.yaml/badge.svg?branch=master)](https://github.com/barlito/dog-help-scheduler/actions/workflows/entrypoint.yaml)
 
-A production-ready Symfony starter template featuring FrankenPHP, Docker Swarm deployment, and comprehensive code quality tools.
+Random "fake walk" reminders to help a dog with separation anxiety.
 
-## Table of Contents
+My dog panics when the departure routine starts — keys, shoes, door. The therapy is desensitization: perform the routine several times a day *without actually leaving* (fake walks), at unpredictable times, until the cues stop meaning "you're being abandoned". This app plans those fake walks at random times every day, pushes each one to my phone via [ntfy](https://ntfy.sh), and tracks whether they were done — with an EasyAdmin backoffice to tune everything.
 
-- [Features](#features)
-- [Requirements](#requirements)
-- [Quick Start](#quick-start)
-- [Available Commands](#available-commands)
-- [Code Quality](#code-quality)
-- [Testing](#testing)
-- [CI/CD](#cicd)
-- [Architecture](#architecture)
-- [Troubleshooting](#troubleshooting)
-- [Roadmap](#roadmap)
+## How it works
 
-## Features
-
-- **FrankenPHP** (PHP 8.3): Modern PHP application server built on Caddy
-- **Docker Swarm**: Production-ready orchestration with Traefik integration
-- **Make + Castor**: Dual task automation system for flexibility
-- **Code Quality Tools**: PHP CS Fixer, PHPCS, PHPMD pre-configured
-- **Testing Suite**: PHPUnit and Behat ready to use
-- **Reusable Make Rules**: Git submodule with common Symfony tasks
-- **CI/CD Ready**: GitHub Actions workflow included
-
-## Requirements
-
-### System Requirements
-- **Docker** (with Swarm mode for development deployment)
-- **Make**
-- **[Castor](https://castor.jolicode.com/)** - PHP task runner
-
-### External Dependencies
-- **[barlito/traefik-base](https://github.com/barlito/traefik-base)** - Traefik stack must be running for routing
-- **[barlito/php-make-rules](https://github.com/barlito/php-make-rules)** - Included as git submodule
-
-### Installing Castor
-```bash
-# macOS
-brew install castor
-
-# Linux
-curl -Ls https://github.com/jolicode/castor/releases/latest/download/castor-linux-amd64 -o /usr/local/bin/castor
-chmod +x /usr/local/bin/castor
-
-# Or via Composer
-composer global require jolicode/castor
+```
+Symfony Scheduler (cron 00:05, Europe/Paris)
+        │  PlanDayMessage
+        ▼
+DayPlanner + RandomScheduleGenerator
+  → for each enabled notification type, picks N random times
+    inside its daily window, respecting a minimum gap
+        │  one delayed SendNotificationMessage per slot (Doctrine transport)
+        ▼
+Messenger worker → NtfyPublisher (JSON publish)
+        │
+        ▼
+📱 Push notification with 3 action buttons
+   ✅ Validé   🔁 Reporter   ❌ Non effectué
+        │  HTTP callback  /n/{id}/{token}/{status}
+        ▼
+Status recorded → dashboard stats + Mercure live refresh
 ```
 
-## Quick Start
+Key behaviors, all covered by tests:
 
-### 1. Clone and Initialize
+- **Random spread with guaranteed gap** — N uniform draws over the window's slack, sorted, then shifted by the minimum gap: always valid, uniformly distributed (`RandomScheduleGenerator`).
+- **Idempotent planning** — a type is never planned twice for the same day; the daily trigger, the `app:plan-day` command and the backoffice "plan now" button all share `DayPlanner`.
+- **Missed-run catch-up** — the schedule is stateful (checkpoint in a Postgres-backed cache pool), so a trigger missed during downtime fires on restart.
+- **Smart postpone** — "🔁 Reporter" re-sends after the type's delay, staggered behind other pending postpones (no burst repop) plus a random jitter.
+- **Secure callbacks** — each notification carries a random response token; buttons work without being logged in, but only for that one notification.
+
+## Backoffice
+
+EasyAdmin 5, protected by Discord OAuth restricted to a single whitelisted user ID.
+
+- **Dashboard** — validated/postponed/missed counts per week, month or all-time, auto-refreshed live through Mercure (hub embedded in FrankenPHP).
+- **Notification types** — message content, ntfy tags, daily window, count per day, minimum gap, postpone delay + jitter, enable/disable.
+- **Notifications** — the day's plan, statuses, cancel (e.g. a day away from home), trigger one immediately.
+- **Settings** — ntfy topic, editable without redeploying (falls back to the `NTFY_TOPIC` env var).
+
+## Stack
+
+- **Symfony 8.1** (PHP 8.4) — Scheduler, Messenger (Doctrine transport), Mercure
+- **FrankenPHP** — app server + embedded Mercure hub
+- **PostgreSQL 18** — data, message queue and scheduler checkpoint
+- **EasyAdmin 5** — backoffice
+- **ntfy** — push notifications with quick-reply action buttons
+- **Docker Swarm + Traefik** — deployment behind [traefik-base](https://github.com/barlito/traefik-base)
+- **Make + Castor** — task automation (shared submodule)
+
+## Quick start
+
+Requires Docker (Swarm mode), Make, [Castor](https://castor.jolicode.com/) and [traefik-base](https://github.com/barlito/traefik-base) running.
 
 ```bash
-# Clone the repository
-git clone https://github.com/barlito/php-starter.git my-project
-cd my-project
+git clone --recurse-submodules git@github.com:barlito/dog-help-scheduler.git
+cd dog-help-scheduler
 
-# Remove existing git history and start fresh
-rm -rf .git
-git init
+# Configure secrets in .env.local: NTFY_TOPIC (treat it as a password),
+# DISCORD_CLIENT_ID / DISCORD_CLIENT_SECRET / DISCORD_ALLOWED_USER_ID
 
-# Initialize submodules
-git submodule update --init --recursive
-```
-
-> **Note**: The Docker container runs with UID/GID 1000 by default. If your user has a different UID/GID and you experience permission issues, export your UID/GID before deploying:
-> ```bash
-> export USER_ID=$(id -u)
-> export GROUP_ID=$(id -g)
-> ```
-
-### 2. Configure Your Stack
-
-```bash
-# Set your stack name (updates Makefile, docker-compose.yml, castor.php)
-castor barlito:castor:set-stack-name my_stack_name
-```
-
-### 3. Deploy and Install Symfony
-
-```bash
-# Deploy the Docker stack
 make docker.deploy
-
-# Install Symfony skeleton
-make symfony.install
+make composer.install
+make doctrine.migrate
 ```
 
-Your Symfony application is now running! Access it at the URL configured in your Traefik setup (default: `starter.local.barlito.fr`).
-
-### 4. Install Development Tools (Optional)
+App runs at `https://doghelp.local.barlito.fr` (php + worker + db services). Create your notification types in the backoffice, then test the pipe end to end:
 
 ```bash
-# Install barlito/utils package (contains config for quality tools)
-make package.barlito_utils.install
-
-# Install code quality tools
-make cs_fixer.install
-make phpcs.install
-make phpmd.install
-
-# Install testing frameworks
-make phpunit.install
-make behat.install
-make behat.init
+make docker.bash
+bin/console app:notify:test   # immediate ntfy push with the 3 buttons
+bin/console app:plan-day      # plan the rest of today
 ```
 
-## Available Commands
-
-### Docker & Stack Management
+## Commands
 
 ```bash
-# Development
-make docker.deploy              # Deploy stack with Docker Swarm
-make docker.bash                # Access PHP container shell
-make docker.command args="..."  # Run command in PHP container
+# Stack
+make docker.deploy            # Deploy dev stack (php + worker + db)
+make docker.bash              # Shell into the PHP container
+make deploy.prod              # Prod deploy: backup → migrate → smoke test
+make undeploy                 # Remove stack
 
-# Full deployment (composer, DB, migrations, fixtures)
-make deploy
+# Database
+make doctrine.migrate         # Run migrations
+make doctrine.diff            # Generate migration from entity changes
+make db.backup                # pg_dump (custom format) to /srv/doghelp/backups
 
-# CI environment
-make docker.deploy.ci           # Deploy with docker-compose for CI
-make docker.undeploy.ci         # Stop and remove CI containers
+# Quality
+make cs_fixer                 # PHP CS Fixer (fix)
+make phpcs                    # PHP CodeSniffer
+make phpmd                    # PHP Mess Detector
 
-# Production
-make docker.deploy.prod         # Deploy production stack
+# Tests
+make phpunit                  # PHPUnit test suite
 ```
 
-### Symfony Operations
+## Tests
+
+PHPUnit 12 suites live in `tests/`: the random generator (gap/window guarantees), day planning (idempotency, delayed dispatch), the send handler (cancel, double-delivery guard, failure path), the ntfy payload factory, the response controller (token check, postpone stagger) and the admin dashboard.
 
 ```bash
-make symfony.install            # Install Symfony skeleton
-make symfony.security_check     # Run security vulnerability check
-```
-
-### Composer
-
-```bash
-make composer.command args="require vendor/package"
-make composer.command args="update"
-```
-
-### Database (Doctrine)
-
-```bash
-# Available in make/app/doctrine.mk
-make doctrine.database.create
-make doctrine.migration.migrate
-# See make/app/doctrine.mk for full list
-```
-
-### Node/Asset Management
-
-```bash
-# Available in make/app/node.mk
-# See submodule for Node.js related commands
-```
-
-## Code Quality
-
-The project uses configurations from `vendor/barlito/utils/config/` for all quality tools.
-
-> ⚠️ **PHPMD is temporarily disabled.** Its `pdepend` dependency has no stable release
-> compatible with `symfony/config ^8` (only `3.x-dev`), so it was removed from `composer.json`
-> and from the `code-quality` CI workflow when upgrading to Symfony 8. **Re-enable it once
-> pdepend ships a Symfony 8 release** — check from time to time:
-> ```bash
-> docker exec $(docker ps -q --filter name=doghelp_php) composer require --dev phpmd/phpmd
-> ```
-> If it installs cleanly, restore the `make phpmd` step in `.github/workflows/code-quality.yaml`.
-> In the meantime, `php-cs-fixer` and `phpcs` remain enforced.
-
-### Check Code Style
-
-```bash
-# Run all style checks at once
-make check_style
-
-# Individual checks
-make phpcs                      # PHP CodeSniffer
-make phpmd                      # PHP Mess Detector
-make cs_fixer.dry_run           # Preview PHP CS Fixer changes
-```
-
-### Fix Code Style
-
-```bash
-make cs_fixer                   # Auto-fix code style issues
-```
-
-### Custom Options
-
-```bash
-# Pass custom options to PHP CS Fixer
-make cs_fixer CSFIXER_OPT="--verbose"
-```
-
-## Testing
-
-### PHPUnit
-
-```bash
-make phpunit.install            # Install PHPUnit
-make phpunit                    # Run tests
-```
-
-### Behat
-
-```bash
-make behat.install              # Install Behat
-make behat.init                 # Initialize Behat configuration
-make behat                      # Run Behat scenarios
+make phpunit
 ```
 
 ## CI/CD
 
-The project includes a GitHub Actions workflow (`.github/workflows/symfony_starter.yaml`) that:
-
-1. Deploys the stack in CI mode
-2. Installs Symfony and all development tools
-3. Runs all code quality checks (phpcs, phpmd, php-cs-fixer)
-4. Executes test suites (PHPUnit, Behat)
-5. Cleans up the environment
-
-The workflow runs on every push and demonstrates the complete setup sequence.
-
-## Architecture
-
-### Dual Build System
-
-The project uses both **Make** and **Castor** for task automation:
-
-- **Make**: Primary task runner, imports reusable rules from the `make/` submodule
-- **Castor**: Handles project-specific tasks (e.g., stack name configuration)
-
-### Docker Stack
-
-- **FrankenPHP**: Modern PHP 8.3 server based on Caddy with live reload in dev mode
-- **Docker Swarm**: Orchestration for development (uses `docker stack deploy`)
-- **Traefik Integration**: HTTP/HTTPS routing via external `traefik_traefik_proxy` network
-- **Volumes**: Persistent storage for Caddy data and configuration
-
-### Make Rules Organization
-
-Rules are organized in the `make/` submodule:
-
-- **`make/app/`**: Application-specific rules (Symfony, Doctrine, Composer, testing, code style)
-- **`make/stack/`**: Infrastructure rules (Docker, deployment)
-
-### Configuration
-
-Stack configuration is centralized in three files:
-- `Makefile`: Stack variables and imports
-- `castor.php`: Castor context with environment variables
-- `docker-compose.yml`: Service definitions and Traefik labels
-
-Use `castor barlito:castor:set-stack-name` to update all files at once.
-
-## Troubleshooting
-
-### Traefik Network Not Found
-
-**Error**: `network traefik_traefik_proxy not found`
-
-**Solution**: Ensure [barlito/traefik-base](https://github.com/barlito/traefik-base) is running:
-```bash
-# Check if Traefik network exists
-docker network ls | grep traefik
-
-# If not, deploy traefik-base first
-```
-
-### Container Not Starting
-
-**Error**: Container exits immediately or restarts
-
-**Solution**: Check container logs:
-```bash
-# Find your container
-docker ps -a | grep starter_php
-
-# View logs
-docker logs <container_id>
-```
-
-### Submodule Not Initialized
-
-**Error**: `make: *** No rule to make target 'make/entrypoint.mk'`
-
-**Solution**: Initialize git submodules:
-```bash
-git submodule update --init --recursive
-```
-
-### Permission Issues
-
-**Error**: Permission denied when accessing files in `var/` or other directories
-
-**Solution**: The container runs with UID/GID 1000 by default. If your user has a different UID/GID:
-
-```bash
-# Check your UID/GID
-id -u  # Should return your user ID
-id -g  # Should return your group ID
-
-# If different from 1000, export your UID/GID and rebuild:
-export USER_ID=$(id -u)
-export GROUP_ID=$(id -g)
-make docker.deploy
-
-# Optional: Add to your shell profile (~/.bashrc or ~/.zshrc) to persist:
-echo 'export USER_ID=$(id -u)' >> ~/.bashrc
-echo 'export GROUP_ID=$(id -g)' >> ~/.bashrc
-source ~/.bashrc
-```
-
-## Roadmap
-
-- [ ] Add PHPStan for static analysis
-- [ ] Add Rector for automated refactoring
-- [ ] Add disabled GitHub workflow for deployment examples
-- [ ] Add database service configuration examples
-
-## Contributing
-
-This is a starter template. Fork it, customize it, make it yours!
-
-## License
-
-This project structure is provided as-is for creating new Symfony applications.
-
-## Related Projects
-
-- [barlito/traefik-base](https://github.com/barlito/traefik-base) - Traefik proxy stack
-- [barlito/php-make-rules](https://github.com/barlito/php-make-rules) - Reusable Make rules
-- [barlito/utils](https://github.com/barlito/utils) - Shared configuration files
+- **[`entrypoint.yaml`](.github/workflows/entrypoint.yaml)** — on every push: code quality (PHP CS Fixer, PHPCS, PHPMD) + PHPUnit, both against a compose-deployed CI stack.
+- **[`release.yaml`](.github/workflows/release.yaml)** — on GitHub release: builds and pushes the `barlito/doghelp` and `barlito/doghelp-worker` images to Docker Hub.
+- **[`deploy.yaml`](.github/workflows/deploy.yaml)** — manual dispatch: rolling update (or full re-deploy) of the Swarm stack over SSH, with DB backup, migrations and a smoke test.
