@@ -25,7 +25,11 @@
 	# L'app publie sur /.well-known/mercure avec un JWT signé par MERCURE_JWT_SECRET ;
 	# le navigateur s'y abonne en SSE sans JWT (anonymous : updates publiques only).
 	mercure {
-		transport_url {$MERCURE_TRANSPORT_URL:bolt:///data/mercure.db}
+		# Mercure 1.0 modern mode needs RFC 9068 tokens, which symfony/mercure does not issue yet
+		protocol_version_compatibility 8
+		transport bolt {
+			path /data/mercure.db
+		}
 		publisher_jwt {env.MERCURE_PUBLISHER_JWT_KEY}
 		subscriber_jwt {env.MERCURE_SUBSCRIBER_JWT_KEY}
 		anonymous
