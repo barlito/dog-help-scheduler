@@ -1,11 +1,16 @@
 services:
     php:
         container_name: doghelp_php
+        # The castor wait tasks look containers up by Swarm service label, which compose does not set
+        labels:
+            com.docker.swarm.service.name: doghelp_php
         ports:
             - "8081:80"
 
     db:
         container_name: doghelp_db
+        labels:
+            com.docker.swarm.service.name: doghelp_db
 
 networks:
     traefik_traefik_proxy:
