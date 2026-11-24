@@ -1,0 +1,29 @@
+name: rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to roll back to
+        required: true
+        type: string
+      restore-database:
+        description: Restore the newest database dump taken under that tag instead of reverting migrations
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  rollback:
+    uses: barlito/ci/.github/workflows/swarm-rollback.yaml@v1
+    with:
+      tag: ${{ inputs.tag }}
+      restore: ${{ inputs.restore-database && '1' || '' }}
+      images: barlito/doghelp barlito/doghelp-worker
+      env-secrets: DB_PASSWORD APP_SECRET NTFY_TOPIC DISCORD_CLIENT_ID DISCORD_CLIENT_SECRET DISCORD_ALLOWED_USER_ID MERCURE_JWT_SECRET
+      castor: true
+    secrets: inherit

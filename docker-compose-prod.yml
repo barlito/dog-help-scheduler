@@ -1,6 +1,6 @@
 services:
     php:
-        image: barlito/doghelp:${TAG:-latest}
+        image: barlito/doghelp:${TAG}
         environment:
             APP_ENV: prod
             APP_SECRET: "${APP_SECRET}"
@@ -56,7 +56,7 @@ services:
     # Consomme le transport Scheduler (planifie chaque jour) ET l'async Doctrine
     # (envoie les notifs ntfy à l'heure prévue / les reports différés).
     worker:
-        image: barlito/doghelp-worker:${TAG:-latest}
+        image: barlito/doghelp-worker:${TAG}
         environment:
             APP_ENV: prod
             APP_SECRET: "${APP_SECRET}"

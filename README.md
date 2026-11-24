@@ -1,6 +1,6 @@
 # dog-help-scheduler
 
-[![CI](https://github.com/barlito/dog-help-scheduler/actions/workflows/entrypoint.yaml/badge.svg?branch=master)](https://github.com/barlito/dog-help-scheduler/actions/workflows/entrypoint.yaml)
+[![CI](https://github.com/barlito/dog-help-scheduler/actions/workflows/ci.yaml/badge.svg?branch=master)](https://github.com/barlito/dog-help-scheduler/actions/workflows/ci.yaml)
 
 Random "fake walk" reminders to help a dog with separation anxiety.
 
@@ -111,6 +111,10 @@ make phpunit
 
 ## CI/CD
 
-- **[`entrypoint.yaml`](.github/workflows/entrypoint.yaml)** — on every push: code quality (PHP CS Fixer, PHPCS, PHPMD) + PHPUnit, both against a compose-deployed CI stack.
+All workflows are thin callers of the reusable workflows of [barlito/ci](https://github.com/barlito/ci) (`@v1`); the project-specific steps live in the Makefile (variables of `make/stack/prod.mk`).
+
+- **[`ci.yaml`](.github/workflows/ci.yaml)** — on pull requests and pushes to `master`: PHP CS Fixer, PHPCS and PHPUnit against a compose-deployed CI stack, plus Docker build and compose validation.
 - **[`release.yaml`](.github/workflows/release.yaml)** — on GitHub release: builds and pushes the `barlito/doghelp` and `barlito/doghelp-worker` images to Docker Hub.
-- **[`deploy.yaml`](.github/workflows/deploy.yaml)** — manual dispatch: rolling update (or full re-deploy) of the Swarm stack over SSH, with DB backup, migrations and a smoke test.
+- **[`deploy.yaml`](.github/workflows/deploy.yaml)** — manual dispatch, run on a release tag: rolling update, or full `docker stack deploy` with `re-deploy` (never removes the stack). DB backup, migrations, image assertion and a smoke test.
+- **[`rollback.yaml`](.github/workflows/rollback.yaml)** — manual dispatch: rolls back to a previous tag, reverting the migrations or restoring the database dump.
+- **[`security.yaml`](.github/workflows/security.yaml)** — weekly Trivy scan of the production image.
