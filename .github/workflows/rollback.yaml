@@ -24,6 +24,6 @@ jobs:
       tag: ${{ inputs.tag }}
       restore: ${{ inputs.restore-database && '1' || '' }}
       images: barlito/doghelp barlito/doghelp-worker
-      env-secrets: DB_PASSWORD APP_SECRET NTFY_TOPIC DISCORD_CLIENT_ID DISCORD_CLIENT_SECRET DISCORD_ALLOWED_USER_ID MERCURE_JWT_SECRET
+      env-secrets: DB_PASSWORD APP_SECRET DISCORD_CLIENT_ID DISCORD_CLIENT_SECRET DISCORD_ALLOWED_USER_ID MERCURE_JWT_SECRET
       castor: true
     secrets: inherit

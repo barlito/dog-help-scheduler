@@ -13,7 +13,7 @@ services:
             DEFAULT_URI: "https://doghelp.barlito.fr"
             APP_PUBLIC_URL: "https://doghelp.barlito.fr"
             NTFY_SERVER: "https://ntfy.sh"
-            NTFY_TOPIC: "${NTFY_TOPIC}"
+            NTFY_TOPIC: "${NTFY_TOPIC:-}"
             NTFY_ICON_URL: "https://doghelp.barlito.fr/icons/dog.webp"
             DISCORD_CLIENT_ID: "${DISCORD_CLIENT_ID}"
             DISCORD_CLIENT_SECRET: "${DISCORD_CLIENT_SECRET}"
@@ -68,7 +68,7 @@ services:
             DEFAULT_URI: "https://doghelp.barlito.fr"
             APP_PUBLIC_URL: "https://doghelp.barlito.fr"
             NTFY_SERVER: "https://ntfy.sh"
-            NTFY_TOPIC: "${NTFY_TOPIC}"
+            NTFY_TOPIC: "${NTFY_TOPIC:-}"
             NTFY_ICON_URL: "https://doghelp.barlito.fr/icons/dog.webp"
             # Le worker publie les updates Mercure (statut SENT, day planning) vers le
             # hub hébergé par le service php.
