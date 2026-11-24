@@ -1,0 +1,24 @@
+name: security
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    paths:
+      - .docker/**
+      - composer.lock
+  schedule:
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    uses: barlito/ci/.github/workflows/image-scan.yaml@v1
+    with:
+      dockerfile: .docker/Dockerfile
+      target: frankenphp_prod
+    secrets: inherit

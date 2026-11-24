@@ -1,6 +1,6 @@
 services:
     php:
-        image: barlito/doghelp:${TAG:-latest}
+        image: barlito/doghelp:${TAG}
         environment:
             APP_ENV: prod
             APP_SECRET: "${APP_SECRET}"
@@ -13,7 +13,7 @@ services:
             DEFAULT_URI: "https://doghelp.barlito.fr"
             APP_PUBLIC_URL: "https://doghelp.barlito.fr"
             NTFY_SERVER: "https://ntfy.sh"
-            NTFY_TOPIC: "${NTFY_TOPIC}"
+            NTFY_TOPIC: "${NTFY_TOPIC:-}"
             NTFY_ICON_URL: "https://doghelp.barlito.fr/icons/dog.webp"
             DISCORD_CLIENT_ID: "${DISCORD_CLIENT_ID}"
             DISCORD_CLIENT_SECRET: "${DISCORD_CLIENT_SECRET}"
@@ -56,7 +56,7 @@ services:
     # Consomme le transport Scheduler (planifie chaque jour) ET l'async Doctrine
     # (envoie les notifs ntfy à l'heure prévue / les reports différés).
     worker:
-        image: barlito/doghelp-worker:${TAG:-latest}
+        image: barlito/doghelp-worker:${TAG}
         environment:
             APP_ENV: prod
             APP_SECRET: "${APP_SECRET}"
@@ -68,7 +68,7 @@ services:
             DEFAULT_URI: "https://doghelp.barlito.fr"
             APP_PUBLIC_URL: "https://doghelp.barlito.fr"
             NTFY_SERVER: "https://ntfy.sh"
-            NTFY_TOPIC: "${NTFY_TOPIC}"
+            NTFY_TOPIC: "${NTFY_TOPIC:-}"
             NTFY_ICON_URL: "https://doghelp.barlito.fr/icons/dog.webp"
             # Le worker publie les updates Mercure (statut SENT, day planning) vers le
             # hub hébergé par le service php.

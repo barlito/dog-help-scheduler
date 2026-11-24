@@ -1,0 +1,36 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  php:
+    uses: barlito/ci/.github/workflows/php-ci.yaml@v1
+    with:
+      checks: cs_fixer.dry_run phpcs
+      tests: phpunit
+    secrets: inherit
+
+  docker:
+    uses: barlito/ci/.github/workflows/docker-check.yaml@v1
+    with:
+      dockerfile: .docker/Dockerfile
+      targets: frankenphp_prod frankenphp_worker_prod
+      compose-env: |
+        TAG=v0.0.0
+        APP_SECRET=x
+        DB_PASSWORD=x
+        NTFY_TOPIC=x
+        DISCORD_CLIENT_ID=x
+        DISCORD_CLIENT_SECRET=x
+        DISCORD_ALLOWED_USER_ID=x
+        MERCURE_JWT_SECRET=x
